@@ -51,7 +51,7 @@ const login = async ( req, res = response ) => {
 
     const { email, password } = req.body;
 
-    try {
+     try {
         
         const usuarioDB = await Usuario.findOne({ email });
         if ( !usuarioDB ) {
@@ -60,6 +60,8 @@ const login = async ( req, res = response ) => {
                 msg: 'Email no encontrado'
             });
         }
+        
+
 
         // Validar el password
         const validPassword = bcrypt.compareSync( password, usuarioDB.password );
@@ -69,6 +71,15 @@ const login = async ( req, res = response ) => {
                 msg: 'La contraseña no es valida'
             });
         }
+
+        
+        if( usuarioDB.online === true ) {
+            return res.status(200).json({
+                ok: false,
+                msg: 'El usuario ya está conectado'
+            }); 
+        }
+
 
 
         // Generar el JWT
@@ -103,6 +114,8 @@ const renewToken = async( req, res = response) => {
 
     // Obtener el usuario por el UID, Usuario.findById... 
     const usuario = await Usuario.findById( uid );
+
+    
 
     console.log({
         ok: true,
