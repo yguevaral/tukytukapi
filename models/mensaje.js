@@ -15,7 +15,12 @@ const MensajeSchema = Schema({
     mensaje: {
         type: String,
         required: true
-    }
+    },
+    trip: {
+        type: Schema.Types.ObjectId,
+        ref: 'Trip',
+        required: false
+    },
 
 }, {
     timestamps: true

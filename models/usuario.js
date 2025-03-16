@@ -36,6 +36,8 @@ const UsuarioSchema = Schema({
         default: "ACTIVE"
     },
 
+}, {
+    timestamps: true
 });
 
 UsuarioSchema.method('toJSON', function() {
