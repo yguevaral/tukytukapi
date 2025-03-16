@@ -82,7 +82,7 @@ const getUserListTripCompleted = async ( req, res = response ) => {
 const getDriverListTrip = async ( req, res = response ) => {
 
 
-    const trips = await Trip.find({ $and: [{user_status: "S", driver_status: "P"}] }).sort({ createdAt: 'desc' }).limit(10);
+    const trips = await Trip.find({ $and: [{user_status: "S"}] }).sort({ createdAt: 'desc' }).limit(10);
     if ( !trips ) {
         return res.status(200).json({
             ok: false,
