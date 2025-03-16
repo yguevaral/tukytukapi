@@ -29,10 +29,34 @@ const getUserActiveTrip = async ( req, res = response ) => {
         });
     }    
 
+    const usuario = await Trip.findOne({ $and: [{usuario: trip.driver}]});
+
     res.json({
         ok: true,
         msg: 'Trip encontrado',
         trip,
+        usuario
+    });
+}
+
+const getUserTrip = async ( req, res = response ) => {
+
+    const trip = await Trip.findOne({ $and: [{uid: req.params.uid .uid}]}).sort({ createdAt: 'desc' });
+    if ( !trip ) {
+        return res.status(200).json({
+            ok: false,
+            msg: 'Trip no encontrado',
+            trip: []
+        });
+    }    
+
+    const usuario = await Trip.findOne({ $and: [{usuario: trip.driver}]});
+
+    res.json({
+        ok: true,
+        msg: 'Trip encontrado',
+        trip,
+        usuario
     });
 }
 
@@ -132,10 +156,13 @@ const getDriverActiveTrip = async ( req, res = response ) => {
         });
     }    
 
+    const usuario = await usuario.findOne({ $and: [{usuario: trip.usuario}]});
+
     res.json({
         ok: true,
         msg: 'Trip encontrado',
         trip,
+        usuario
     });
 }
 
@@ -148,5 +175,6 @@ module.exports = {
     getDriverListTrip,
     setDriverAcceptTrip,
     setDriverStatusTrip,
-    getDriverActiveTrip
+    getDriverActiveTrip,
+    getUserTrip
 }

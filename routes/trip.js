@@ -21,6 +21,10 @@ router.post('/user/new', [
     validarJWT
 ], tripController.setUserTrip );
 
+router.get('/user/trip/:uid', [
+    validarJWT
+], tripController.getUserTrip );
+
 router.get('/user/tripActive', [
     validarJWT
 ], tripController.getUserActiveTrip );
@@ -29,7 +33,7 @@ router.get('/user/listTripCompleted', [
     validarJWT
 ], tripController.getUserListTripCompleted );
 
-router.get('/driver/tripActive', [
+router.get('/driver/tripActive/:uid', [
     validarJWT
 ], tripController.getDriverActiveTrip );
 
