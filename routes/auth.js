@@ -15,7 +15,6 @@ const router = Router();
 
 router.post('/new', [
     check('nombre','El nombre es obligatorio').not().isEmpty(),
-    check('apellido','El apellido es obligatoria').not().isEmpty(),
     check('password','La contraseña es obligatoria').not().isEmpty(),
     check('email','El correo es obligatorio').isEmail(),
     check('type','type es obligatorio').not().isEmpty(),
