@@ -18,6 +18,8 @@ router.post('/new', [
     check('apellido','El apellido es obligatoria').not().isEmpty(),
     check('password','La contraseña es obligatoria').not().isEmpty(),
     check('email','El correo es obligatorio').isEmail(),
+    check('type','type es obligatorio').not().isEmpty(),
+    check('register_type','register_type es obligatorio').not().isEmpty(),
     validarCampos
 ], crearUsuario );
 
