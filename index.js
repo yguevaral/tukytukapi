@@ -11,7 +11,7 @@ require('./database/config').dbConnection();
 const app = express();
 
 // Lectura y parseo del Body
-app.use( express.json() );
+app.use( express.json({ limit: '5000mb' }) );
 
 // CORS
 

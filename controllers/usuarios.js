@@ -23,7 +23,6 @@ const getUsuarios = async ( req, res = response ) => {
 const setDriverSingin = async ( req, res = response ) => {
 
     try {
-        const { id } = req.params;
 
         const usuarioDB = await Usuario.findOne({ _id: req.uid });
         
