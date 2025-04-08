@@ -5,7 +5,7 @@
 const { Router } = require('express');
 const { check } = require('express-validator');
 
-const { crearUsuario, login, renewToken } = require('../controllers/auth');
+const { crearUsuario, login, renewToken, crearOTP } = require('../controllers/auth');
 const { validarCampos } = require('../middlewares/validar-campos');
 const { validarJWT } = require('../middlewares/validar-jwt');
 
@@ -28,5 +28,9 @@ router.post('/', [
 
 
 router.get('/renew', validarJWT, renewToken );
+
+router.post('/otp', [
+    check('email','El correo es obligatorio').isEmail(),
+], crearOTP );
 
 module.exports = router;

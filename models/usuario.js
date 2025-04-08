@@ -33,7 +33,11 @@ const UsuarioSchema = Schema({
     },
     status: {
         type: String,
-        default: "ACTIVE"
+        default: "AP"
+    },
+    register_type: {
+        type: String,
+        default: "E"
     },
 
 }, {
