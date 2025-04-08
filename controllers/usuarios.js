@@ -69,12 +69,22 @@ const getListDriver = async ( req, res = response ) => {
 
     try {
 
-        const drivers = await Driver.find({status : 'P'  });
+        let drivers = await Driver.find({status : 'P'  });
+
+        let driversUser = [];
+        //
+        for(let i = 0; i < drivers.length; i++) {
+            const driver = drivers[i];
+            const usuarioDB = await Usuario.findOne({ _id: driver.usuario });
+        
+            driversUser.push({driver, usuarioDB});
+        }
+
 
         res.json({
             ok: true,
             msg: 'Lista de conductores pendientes',
-            drivers
+            driversUser
         });
         
     } catch (error) {

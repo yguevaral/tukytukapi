@@ -49,6 +49,13 @@ DriverSchema.method('toJSON', function() {
     return object;
 })
 
+// Virtual populate
+DriverSchema.virtual("datausuario", {
+    ref: "Usuario",   //must be changed to the name you used for Comment model.
+    foreignField: "usuario",
+    localField: "_id"
+  });
+
 
 
 module.exports = model('Driver', DriverSchema );

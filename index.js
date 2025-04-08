@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const cors = require('cors');
 require('dotenv').config();
 
 // DB Config
@@ -11,6 +12,10 @@ const app = express();
 
 // Lectura y parseo del Body
 app.use( express.json() );
+
+// CORS
+
+app.use(cors())
 
 
 // Node Server
