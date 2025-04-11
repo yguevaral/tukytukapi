@@ -25,7 +25,7 @@ const UsuarioSchema = Schema({
     },
     type: {
         type: String,
-        default: 'USER'
+        default: 'U'
     },
     telefono: {
         type: String,

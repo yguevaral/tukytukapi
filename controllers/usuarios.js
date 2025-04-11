@@ -45,7 +45,7 @@ const setDriverSingin = async ( req, res = response ) => {
         driver.save();
         
         // Enviar correo de notificacion al admin
-        await sendEmailNotificationNewDriverDocs(usuarioDB.nombre);
+        //await sendEmailNotificationNewDriverDocs(usuarioDB.nombre);
         
         res.json({
             ok: true,
@@ -115,6 +115,9 @@ const adminListDriverSetStatus = async ( req, res = response ) => {
     
 
     if( driver.status === 'A' ){
+        const usuarioDB = await Usuario.findOne({ _id: driver.usuario });
+        usuarioDB.type = 'C';
+        usuarioDB.save();
         sendEmailNotificationUserDriverRequestUpdate(usuarioDriver.email, usuarioDriver.nombre, 'Tu solicitud ha sido APROBADA, ingresa a la app y comienza a trabajar');
     } 
 
