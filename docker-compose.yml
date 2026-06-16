@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: tukytuk-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: tukytuk
+
+  # Descomenta para tener UI web en http://localhost:8081
+  # mongo-express:
+  #   image: mongo-express:1
+  #   container_name: tukytuk-mongo-ui
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     ME_CONFIG_MONGODB_SERVER: mongo
+  #     ME_CONFIG_BASICAUTH: "false"
+  #   depends_on:
+  #     - mongo
+
+volumes:
+  mongo-data:
