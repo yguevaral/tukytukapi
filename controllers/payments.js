@@ -174,8 +174,10 @@ const adminListPayments = async (req, res = response) => {
         const firstMatch = {};
         if (status) firstMatch.status = status;
         if (driverUid) {
-            try { firstMatch.driver = new mongoose.Types.ObjectId(driverUid); }
-            catch { firstMatch.driver = driverUid; }
+            if (!mongoose.isValidObjectId(driverUid)) {
+                return res.status(400).json({ ok: false, msg: 'driverUid inválido' });
+            }
+            firstMatch.driver = new mongoose.Types.ObjectId(driverUid);
         }
 
         const pipeline = [
@@ -356,6 +358,10 @@ const adminUpdateSettings = async (req, res = response) => {
 // PATCH /api/payments/admin/:id (editar comentario + reemplazar comprobante)
 const adminPatchPayment = async (req, res = response) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ ok: false, msg: 'id inválido' });
+        }
+
         const payment = await Payment.findById(req.params.id);
         if (!payment) {
             return res.status(404).json({ ok: false, msg: 'Pago no encontrado' });
@@ -367,12 +373,16 @@ const adminPatchPayment = async (req, res = response) => {
         let changed = false;
 
         const newComment = req.body && req.body.adminComment;
-        if (newComment != null && String(newComment) !== String(payment.adminComment || '')) {
-            payment.adminComment = String(newComment);
-            appendEvent(payment, 'comentario_editado', req.uid, payment.adminComment);
-            changed = true;
+        if (newComment != null) {
+            const trimmed = String(newComment).trim();
+            if (trimmed !== String(payment.adminComment || '').trim()) {
+                payment.adminComment = trimmed;
+                appendEvent(payment, 'comentario_editado', req.uid, trimmed);
+                changed = true;
+            }
         }
 
+        let oldPathToDelete = null;
         if (req.file) {
             const oldUrl = payment.receiptUrl;
             payment.receiptUrl = `/api/payments/receipt/${req.file.filename}`;
@@ -382,8 +392,7 @@ const adminPatchPayment = async (req, res = response) => {
             if (oldUrl && oldUrl.startsWith('/api/payments/receipt/')) {
                 const oldName = oldUrl.split('/').pop();
                 if (oldName) {
-                    const oldPath = path.resolve('uploads/payments', oldName);
-                    fs.unlink(oldPath, () => {});
+                    oldPathToDelete = path.resolve(__dirname, '..', 'uploads', 'payments', oldName);
                 }
             }
         }
@@ -393,6 +402,12 @@ const adminPatchPayment = async (req, res = response) => {
         }
 
         await payment.save();
+
+        // Borrar el comprobante viejo solo después de que el save fue exitoso
+        if (oldPathToDelete) {
+            fs.unlink(oldPathToDelete, () => {});
+        }
+
         return res.status(200).json({ ok: true, payment });
     } catch (err) {
         console.error('adminPatchPayment', { uid: req.uid, err: err.message });
@@ -403,6 +418,10 @@ const adminPatchPayment = async (req, res = response) => {
 // POST /api/payments/admin/:id/expire
 const adminExpirePayment = async (req, res = response) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ ok: false, msg: 'id inválido' });
+        }
+
         const payment = await Payment.findById(req.params.id);
         if (!payment) {
             return res.status(404).json({ ok: false, msg: 'Pago no encontrado' });

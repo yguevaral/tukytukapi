@@ -12,12 +12,22 @@ const makeRes = () => ({
     json(b) { this.body = b; return this; }
 });
 
+const VALID_ID = new mongoose.Types.ObjectId().toHexString();
+
+test('adminExpirePayment 400 si id es inválido', async () => {
+    const req = { uid: 'a1', params: { id: 'no-es-objectid' } };
+    const res = makeRes();
+    await adminExpirePayment(req, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.msg, 'id inválido');
+});
+
 test('adminExpirePayment 404 si no existe', async (t) => {
     const orig = Payment.findById;
     t.after(() => { Payment.findById = orig; });
     Payment.findById = async () => null;
 
-    const req = { uid: 'a1', params: { id: 'x' } };
+    const req = { uid: 'a1', params: { id: VALID_ID } };
     const res = makeRes();
     await adminExpirePayment(req, res);
     assert.equal(res.statusCode, 404);
@@ -28,7 +38,7 @@ test('adminExpirePayment 409 si status no es aprobado', async (t) => {
     t.after(() => { Payment.findById = orig; });
     Payment.findById = async () => ({ status: 'pendiente', events: [], save: async function() { return this; } });
 
-    const req = { uid: 'a1', params: { id: 'x' } };
+    const req = { uid: 'a1', params: { id: VALID_ID } };
     const res = makeRes();
     await adminExpirePayment(req, res);
     assert.equal(res.statusCode, 409);
@@ -49,7 +59,7 @@ test('adminExpirePayment 200 marca vencido, evento con by=admin, desactiva condu
     let updateCall;
     Usuario.updateOne = async (filter, update) => { updateCall = { filter, update }; return { matchedCount: 1, modifiedCount: 1 }; };
 
-    const req = { uid: 'admin1', params: { id: 'x' } };
+    const req = { uid: 'admin1', params: { id: VALID_ID } };
     const res = makeRes();
     await adminExpirePayment(req, res);
     assert.equal(res.statusCode, 200);

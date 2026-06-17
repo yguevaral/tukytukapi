@@ -46,12 +46,14 @@ test('adminListPayments aplica filtros opcionales', async (t) => {
         return [{ payments: [], meta: [] }];
     };
 
-    const req = { query: { status: 'pendiente', driverUid: 'd1', page: '1', limit: '20' } };
+    // driverUid debe ser un ObjectId válido; 'd1' ahora devuelve 400
+    const validDriverUid = '507f1f77bcf86cd799439011';
+    const req = { query: { status: 'pendiente', driverUid: validDriverUid, page: '1', limit: '20' } };
     const res = makeRes();
     await adminListPayments(req, res);
     const firstMatch = captured.find(s => s.$match)?.$match;
     assert.equal(firstMatch.status, 'pendiente');
-    assert.equal(firstMatch.driver, 'd1');
+    assert.ok(firstMatch.driver, 'driver debe estar presente en el filtro');
 });
 
 test('adminApprovePayment 409 si pago no está pendiente', async (t) => {

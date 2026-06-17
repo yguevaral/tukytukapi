@@ -82,3 +82,16 @@ test('adminListPayments capa limit a 100', async (t) => {
     await adminListPayments(req, res);
     assert.equal(res.body.limit, 100);
 });
+
+test('adminListPayments 400 si driverUid es inválido', async (t) => {
+    const orig = Payment.aggregate;
+    t.after(() => { Payment.aggregate = orig; });
+    // aggregate no debe llamarse si driverUid es inválido
+    Payment.aggregate = async () => { throw new Error('No debería llamarse'); };
+
+    const req = { uid: 'admin1', query: { driverUid: 'no-es-objectid' } };
+    const res = makeRes();
+    await adminListPayments(req, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.msg, 'driverUid inválido');
+});
