@@ -166,7 +166,30 @@ const getDriverActiveTrip = async ( req, res = response ) => {
     });
 }
 
-
+const cancelUserTrip = async (req, res = response) => {
+    try {
+        const trip = await Trip.findOne({ _id: req.body.uid_trip });
+        if (!trip) {
+            return res.status(404).json({ ok: false, msg: 'Trip no encontrado' });
+        }
+        if (String(trip.usuario) !== String(req.uid)) {
+            return res.status(403).json({ ok: false, msg: 'No autorizado' });
+        }
+        if (trip.user_status !== 'S') {
+            return res.status(409).json({
+                ok: false,
+                msg: 'Solo se puede cancelar mientras está solicitado'
+            });
+        }
+        trip.user_status = 'C';
+        trip.cancelledAt = new Date();
+        await trip.save();
+        return res.status(200).json({ ok: true, msg: 'Trip cancelado', trip });
+    } catch (err) {
+        console.error('cancelUserTrip', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
 
 module.exports = {
     setUserTrip,
@@ -176,5 +199,6 @@ module.exports = {
     setDriverAcceptTrip,
     setDriverStatusTrip,
     getDriverActiveTrip,
-    getUserTrip
+    getUserTrip,
+    cancelUserTrip
 }

@@ -54,4 +54,10 @@ router.put('/driver/statusTrip', [
     validarJWT
 ], tripController.setDriverStatusTrip );
 
+router.put('/user/cancelTrip', [
+    check('uid_trip', 'uid_trip es obligatorio').not().isEmpty(),
+    validarCampos,
+    validarJWT
+], tripController.cancelUserTrip);
+
 module.exports = router;
