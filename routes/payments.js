@@ -93,6 +93,11 @@ router.patch('/admin/:id',
     paymentsController.adminPatchPayment
 );
 
+router.post('/admin/:id/expire',
+    [validarJWT, validarAdmin],
+    paymentsController.adminExpirePayment
+);
+
 router.get('/admin/settings',
     [validarJWT, validarAdmin],
     paymentsController.adminGetSettings

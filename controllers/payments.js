@@ -400,6 +400,32 @@ const adminPatchPayment = async (req, res = response) => {
     }
 };
 
+// POST /api/payments/admin/:id/expire
+const adminExpirePayment = async (req, res = response) => {
+    try {
+        const payment = await Payment.findById(req.params.id);
+        if (!payment) {
+            return res.status(404).json({ ok: false, msg: 'Pago no encontrado' });
+        }
+        if (payment.status !== 'aprobado') {
+            return res.status(409).json({ ok: false, msg: 'Solo se pueden vencer pagos aprobados' });
+        }
+        payment.status = 'vencido';
+        appendEvent(payment, 'vencido', req.uid);
+        await payment.save();
+
+        await Usuario.updateOne(
+            { _id: payment.driver, type: 'C' },
+            { $set: { online: false } }
+        );
+
+        return res.status(200).json({ ok: true, payment });
+    } catch (err) {
+        console.error('adminExpirePayment', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 module.exports = {
     uploadDriverPayment,
     listDriverPayments,
@@ -412,5 +438,6 @@ module.exports = {
     adminCreatePayment,
     adminGetSettings,
     adminUpdateSettings,
-    adminPatchPayment
+    adminPatchPayment,
+    adminExpirePayment
 };
