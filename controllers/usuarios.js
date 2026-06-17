@@ -247,6 +247,66 @@ const adminSetSpecialPricing = async (req, res = response) => {
     }
 };
 
+// GET /api/usuarios/admin/drivers - Lista paginada de conductores con búsqueda
+const adminListDrivers = async (req, res = response) => {
+    try {
+        const { status, search } = req.query;
+        const page = Math.max(parseInt(req.query.page) || 1, 1);
+        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+
+        const pipeline = [
+            { $lookup: { from: 'usuarios', localField: 'usuario', foreignField: '_id', as: 'usuario' } },
+            { $unwind: '$usuario' }
+        ];
+
+        if (status && ['A', 'R', 'P'].includes(status)) {
+            pipeline.push({ $match: { status } });
+        }
+
+        if (search && typeof search === 'string' && search.trim()) {
+            const regex = { $regex: search.trim(), $options: 'i' };
+            pipeline.push({
+                $match: {
+                    $or: [
+                        { 'usuario.nombre': regex },
+                        { 'usuario.apellido': regex },
+                        { 'usuario.email': regex },
+                        { plate: regex }
+                    ]
+                }
+            });
+        }
+
+        pipeline.push({
+            $facet: {
+                drivers: [
+                    { $sort: { createdAt: -1 } },
+                    { $skip: (page - 1) * limit },
+                    { $limit: limit }
+                ],
+                meta: [{ $count: 'total' }]
+            }
+        });
+
+        const result = await Driver.aggregate(pipeline);
+        const rows = result[0]?.drivers ?? [];
+        const total = result[0]?.meta?.[0]?.total ?? 0;
+
+        const drivers = rows.map((row) => {
+            const { usuario, _id, ...rest } = row;
+            return {
+                driver: { uid: _id, ...rest },
+                usuario: { uid: usuario._id, nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, telefono: usuario.telefono }
+            };
+        });
+
+        return res.status(200).json({ ok: true, drivers, total, page, limit });
+    } catch (err) {
+        console.error('adminListDrivers', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 // PUT /api/usuarios/online - Gate al ponerse en línea
 const setOnline = async (req, res = response) => {
     try {
@@ -284,5 +344,6 @@ module.exports = {
     getDriver,
     adminCreateDriver,
     adminSetSpecialPricing,
+    adminListDrivers,
     setOnline
 }
