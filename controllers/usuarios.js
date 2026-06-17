@@ -1,5 +1,7 @@
 const { response } = require('express');
 const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs');
 const Usuario = require('../models/usuario');
 const Driver = require('../models/driver');
 const { sendEmailNotificationNewDriverDocs, sendEmailNotificationUserDriverRequestUpdate } = require('../helpers/email');
@@ -426,6 +428,46 @@ const setOnline = async (req, res = response) => {
     }
 };
 
+// GET /api/usuarios/admin/drivers/imagen/:filename - Servir imagen de conductor con auth
+const serveDriverImage = async (req, res = response) => {
+    try {
+        const { filename } = req.params;
+        if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
+            return res.status(400).json({ ok: false, msg: 'Nombre de archivo inválido' });
+        }
+        const url = `/api/usuarios/admin/drivers/imagen/${filename}`;
+        const driver = await Driver.findOne({
+            $or: [
+                { imageProfile: url },
+                { imageDPI1: url },
+                { imageDPI2: url }
+            ]
+        });
+        if (!driver) {
+            return res.status(404).json({ ok: false, msg: 'Imagen no encontrada' });
+        }
+        const isOwner = String(driver.usuario) === String(req.uid);
+        if (!isOwner) {
+            const usuario = await Usuario.findById(req.uid).select('type');
+            if (!usuario || usuario.type !== 'A') {
+                return res.status(403).json({ ok: false, msg: 'No autorizado' });
+            }
+        }
+        const baseDir = path.resolve('uploads/drivers');
+        const filePath = path.resolve(baseDir, filename);
+        if (!filePath.startsWith(baseDir + path.sep)) {
+            return res.status(400).json({ ok: false, msg: 'Ruta inválida' });
+        }
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ ok: false, msg: 'Archivo no encontrado' });
+        }
+        return res.sendFile(filePath);
+    } catch (err) {
+        console.error('serveDriverImage', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 module.exports = {
     getUsuarios,
     setDriverSingin,
@@ -438,5 +480,6 @@ module.exports = {
     adminGetDriver,
     adminUpdateDriver,
     setOnline,
-    adminUploadDriverImage
+    adminUploadDriverImage,
+    serveDriverImage
 }

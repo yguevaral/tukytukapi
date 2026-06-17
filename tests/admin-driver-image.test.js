@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 
 const Driver = require('../models/driver');
+const Usuario = require('../models/usuario');
 const { adminUploadDriverImage } = require('../controllers/usuarios');
 
 const makeRes = () => ({
@@ -80,4 +81,45 @@ test('adminUploadDriverImage 200 setea imageDPI2 cuando tipo=dpi2', async (t) =>
     const res = makeRes();
     await adminUploadDriverImage(req, res);
     assert.equal(driverDoc.imageDPI2, '/api/usuarios/admin/drivers/imagen/d2.jpg');
+});
+
+const { serveDriverImage } = require('../controllers/usuarios');
+
+const makeFileRes = () => ({
+    statusCode: 200, body: null, sentFile: null,
+    status(c) { this.statusCode = c; return this; },
+    json(b) { this.body = b; return this; },
+    sendFile(p) { this.sentFile = p; return this; }
+});
+
+test('serveDriverImage 400 si filename inválido', async () => {
+    const req = { uid: 'u1', params: { filename: '../etc/passwd' } };
+    const res = makeFileRes();
+    await serveDriverImage(req, res);
+    assert.equal(res.statusCode, 400);
+});
+
+test('serveDriverImage 404 si no encuentra driver con esa URL', async (t) => {
+    const orig = Driver.findOne;
+    t.after(() => { Driver.findOne = orig; });
+    Driver.findOne = async () => null;
+
+    const req = { uid: 'u1', params: { filename: 'noexiste.jpg' } };
+    const res = makeFileRes();
+    await serveDriverImage(req, res);
+    assert.equal(res.statusCode, 404);
+});
+
+test('serveDriverImage 403 si no es dueño ni admin', async (t) => {
+    const origD = Driver.findOne;
+    const origU = Usuario.findById;
+    t.after(() => { Driver.findOne = origD; Usuario.findById = origU; });
+
+    Driver.findOne = async () => ({ usuario: 'owner-uid' });
+    Usuario.findById = () => ({ select: async () => ({ type: 'U' }) });
+
+    const req = { uid: 'otro-uid', params: { filename: 'x.jpg' } };
+    const res = makeFileRes();
+    await serveDriverImage(req, res);
+    assert.equal(res.statusCode, 403);
 });
