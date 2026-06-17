@@ -332,6 +332,9 @@ const adminUpdateDriver = async (req, res = response) => {
             return res.status(404).json({ ok: false, msg: 'Conductor no encontrado' });
         }
 
+        // Siempre cargar el driver al principio
+        let driver = await Driver.findOne({ usuario: uid });
+
         const userFields = ['nombre', 'apellido', 'email', 'telefono'];
         const userUpdate = {};
         for (const f of userFields) {
@@ -356,14 +359,10 @@ const adminUpdateDriver = async (req, res = response) => {
             if (req.body[f] !== undefined) driverUpdate[f] = req.body[f];
         }
 
-        // Solo consultar Driver si hay campos de conductor a actualizar
-        let driver = null;
-        if (Object.keys(driverUpdate).length) {
-            driver = await Driver.findOne({ usuario: uid });
-            if (driver) {
-                for (const k of Object.keys(driverUpdate)) driver[k] = driverUpdate[k];
-                await driver.save();
-            }
+        // Aplicar cambios de conductor si existen y el driver fue cargado
+        if (Object.keys(driverUpdate).length && driver) {
+            for (const k of Object.keys(driverUpdate)) driver[k] = driverUpdate[k];
+            await driver.save();
         }
 
         return res.status(200).json({ ok: true, usuario, driver });
