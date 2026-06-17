@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const Usuario = require('../models/usuario');
 const Driver = require('../models/driver');
 const { sendEmailNotificationNewDriverDocs, sendEmailNotificationUserDriverRequestUpdate } = require('../helpers/email');
+const { isDriverPaid, getDriverPrice } = require('../helpers/driverPayment');
 
 const getUsuarios = async ( req, res = response ) => {
 
@@ -229,6 +230,35 @@ const adminSetSpecialPricing = async (req, res = response) => {
     }
 };
 
+// PUT /api/usuarios/online - Gate al ponerse en línea
+const setOnline = async (req, res = response) => {
+    try {
+        const usuario = await Usuario.findById(req.uid);
+        if (!usuario) {
+            return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
+        }
+        const wantOnline = req.body && req.body.online === true;
+        if (wantOnline && usuario.type === 'C') {
+            const paid = await isDriverPaid(req.uid);
+            if (!paid) {
+                const driver = await Driver.findOne({ usuario: req.uid });
+                const price = await getDriverPrice(driver || {});
+                return res.status(402).json({
+                    ok: false,
+                    msg: 'mensualidad_vencida',
+                    price
+                });
+            }
+        }
+        usuario.online = !!wantOnline;
+        await usuario.save();
+        return res.status(200).json({ ok: true, usuario });
+    } catch (err) {
+        console.error('setOnline', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 module.exports = {
     getUsuarios,
     setDriverSingin,
@@ -236,5 +266,6 @@ module.exports = {
     adminListDriverSetStatus,
     getDriver,
     adminCreateDriver,
-    adminSetSpecialPricing
+    adminSetSpecialPricing,
+    setOnline
 }

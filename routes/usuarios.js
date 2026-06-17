@@ -14,12 +14,19 @@ const {
     adminListDriverSetStatus,
     getDriver,
     adminCreateDriver,
-    adminSetSpecialPricing
+    adminSetSpecialPricing,
+    setOnline
 } = require('../controllers/usuarios');
 
 const router = Router();
 
 router.get('/', validarJWT, getUsuarios);
+
+router.put('/online', [
+    validarJWT,
+    check('online', 'online es obligatorio y debe ser booleano').isBoolean(),
+    validarCampos
+], setOnline);
 
 router.post('/driver/singin', [
     validarJWT,
