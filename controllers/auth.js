@@ -245,10 +245,56 @@ const loginGoogle = async (req, res = response) => {
     }
 };
 
+const getPendingOtps = async (req, res = response) => {
+    try {
+        const otps = await OTPCode.find({ status: 'S' })
+            .sort({ createdAt: -1 })
+            .limit(100);
+        return res.json({ ok: true, otps });
+    } catch (e) {
+        console.log('getPendingOtps error', e);
+        return res.status(500).json({ ok: false, msg: 'Hable con el administrador' });
+    }
+};
+
+const approveOtp = async (req, res = response) => {
+    const { id } = req.params;
+    try {
+        const otp = await OTPCode.findById(id);
+        if (!otp) return res.status(404).json({ ok: false, msg: 'OTP no encontrado' });
+        if (otp.status !== 'S') return res.status(400).json({ ok: false, msg: 'OTP no está pendiente' });
+
+        const existe = await Usuario.findOne({ email: otp.email });
+        if (existe) {
+            otp.status = 'V';
+            await otp.save();
+            return res.json({ ok: true, msg: 'Usuario ya existía; OTP marcado como usado', usuario: existe });
+        }
+
+        const usuario = new Usuario({
+            nombre: otp.name || otp.email,
+            email: otp.email,
+            register_type: 'E',
+            type: 'U',
+        });
+        await usuario.save();
+
+        otp.status = 'V';
+        await otp.save();
+
+        return res.json({ ok: true, msg: 'OTP aprobado y usuario creado', usuario });
+    } catch (e) {
+        console.log('approveOtp error', e);
+        return res.status(500).json({ ok: false, msg: 'Hable con el administrador' });
+    }
+};
+
 module.exports = {
     crearUsuario,
     login,
     renewToken,
     crearOTP,
-    loginGoogle
+    loginGoogle,
+    getPendingOtps,
+    approveOtp
 }

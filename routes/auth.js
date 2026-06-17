@@ -5,9 +5,10 @@
 const { Router } = require('express');
 const { check } = require('express-validator');
 
-const { crearUsuario, login, renewToken, crearOTP, loginGoogle } = require('../controllers/auth');
+const { crearUsuario, login, renewToken, crearOTP, loginGoogle, getPendingOtps, approveOtp } = require('../controllers/auth');
 const { validarCampos } = require('../middlewares/validar-campos');
 const { validarJWT } = require('../middlewares/validar-jwt');
+const { validarAdmin } = require('../middlewares/validar-admin');
 
 const router = Router();
 
@@ -44,5 +45,8 @@ router.post('/google', [
     check('idToken', 'idToken es obligatorio').not().isEmpty(),
     validarCampos
 ], loginGoogle);
+
+router.get('/otps/pending', [validarJWT, validarAdmin], getPendingOtps);
+router.post('/otps/:id/approve', [validarJWT, validarAdmin], approveOtp);
 
 module.exports = router;
