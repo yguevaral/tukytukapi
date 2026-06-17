@@ -14,10 +14,8 @@ const makeRes = () => ({
 
 const stubMongo = (t) => {
     const originalFindOne = Trip.findOne;
-    const originalSave = Trip.prototype.save;
     t.after(() => {
         Trip.findOne = originalFindOne;
-        Trip.prototype.save = originalSave;
     });
 };
 
