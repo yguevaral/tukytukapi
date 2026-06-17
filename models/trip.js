@@ -55,6 +55,7 @@ const TripSchema = Schema({
 });
 
 TripSchema.index({ user_status: 1, usuario: 1, rejectedBy: 1 });
+TripSchema.index({ driver: 1, driver_status: 1 });
 
 TripSchema.method('toJSON', function() {
     const { __v, _id, password, ...object } = this.toObject();
