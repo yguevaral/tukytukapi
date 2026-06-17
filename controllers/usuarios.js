@@ -266,7 +266,8 @@ const adminListDrivers = async (req, res = response) => {
         }
 
         if (search && typeof search === 'string' && search.trim()) {
-            const regex = { $regex: search.trim(), $options: 'i' };
+            const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = { $regex: escaped, $options: 'i' };
             pipeline.push({
                 $match: {
                     $or: [
@@ -353,7 +354,6 @@ const adminUpdateDriver = async (req, res = response) => {
 
         // Aplicar cambios de usuario
         for (const k of Object.keys(userUpdate)) usuario[k] = userUpdate[k];
-        if (Object.keys(userUpdate).length) await usuario.save();
 
         const driverFields = ['plate', 'locallicense', 'address', 'status', 'commentsAdmin'];
         const driverUpdate = {};
@@ -364,8 +364,13 @@ const adminUpdateDriver = async (req, res = response) => {
         // Aplicar cambios de conductor si existen y el driver fue cargado
         if (Object.keys(driverUpdate).length && driver) {
             for (const k of Object.keys(driverUpdate)) driver[k] = driverUpdate[k];
-            await driver.save();
         }
+
+        // Guardar en paralelo para evitar guardado parcial inconsistente
+        const saves = [];
+        if (Object.keys(userUpdate).length) saves.push(usuario.save());
+        if (Object.keys(driverUpdate).length && driver) saves.push(driver.save());
+        await Promise.all(saves);
 
         return res.status(200).json({ ok: true, usuario, driver });
     } catch (err) {
@@ -389,6 +394,12 @@ const adminUploadDriverImage = async (req, res = response) => {
         const driver = await Driver.findOne({ usuario: uid });
         if (!driver) {
             return res.status(404).json({ ok: false, msg: 'Conductor no encontrado' });
+        }
+        // Borrar archivo anterior para no acumular archivos huérfanos
+        const prevUrl = driver[fieldMap[tipo]];
+        if (prevUrl && typeof prevUrl === 'string') {
+            const prevBase = path.basename(prevUrl);
+            fs.unlink(path.join('uploads/drivers', prevBase), () => {}); // error ignorado intencionalmente
         }
         driver[fieldMap[tipo]] = `/api/usuarios/admin/drivers/imagen/${req.file.filename}`;
         await driver.save();

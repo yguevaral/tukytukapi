@@ -25,6 +25,21 @@ const {
 
 const uploadDrivers = require('../helpers/upload-drivers');
 
+// Adaptador que convierte errores de multer en respuestas JSON 400
+const uploadDriverImageMw = (req, res, next) => {
+    uploadDrivers.single('imagen')(req, res, (err) => {
+        if (err) {
+            const msg = err.code === 'LIMIT_FILE_SIZE'
+                ? 'archivo_demasiado_grande'
+                : err.message === 'TIPO_INVALIDO'
+                    ? 'tipo_invalido'
+                    : 'error_de_subida';
+            return res.status(400).json({ ok: false, msg });
+        }
+        next();
+    });
+};
+
 const router = Router();
 
 router.get('/', validarJWT, getUsuarios);
@@ -85,7 +100,7 @@ router.put('/admin/drivers/:uid', [
 router.get('/driver', validarJWT, getDriver);
 
 router.post('/admin/drivers/:uid/imagen',
-    [validarJWT, validarAdmin, uploadDrivers.single('imagen')],
+    [validarJWT, validarAdmin, uploadDriverImageMw],
     adminUploadDriverImage
 );
 

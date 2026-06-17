@@ -1,6 +1,10 @@
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
+
+// Garantiza que el directorio existe en arranque (CI, despliegue en fresco)
+fs.mkdirSync('uploads/drivers', { recursive: true });
 
 const storage = multer.diskStorage({
     destination: 'uploads/drivers/',

@@ -55,6 +55,36 @@ test('adminUploadDriverImage 200 setea imageProfile cuando tipo=perfil', async (
     assert.equal(driverDoc.imageDPI1, '');
 });
 
+test('adminUploadDriverImage borra archivo previo al reemplazar imagen', async (t) => {
+    const fs = require('fs');
+    const path = require('path');
+    const orig = Driver.findOne;
+    const origUnlink = fs.unlink;
+    t.after(() => {
+        Driver.findOne = orig;
+        fs.unlink = origUnlink;
+    });
+
+    let deletedPath = null;
+    fs.unlink = (p, cb) => { deletedPath = p; cb(null); };
+
+    const driverDoc = {
+        imageProfile: '/api/usuarios/admin/drivers/imagen/viejo.jpg',
+        imageDPI1: '', imageDPI2: '',
+        save: async function() { return this; }
+    };
+    Driver.findOne = async () => driverDoc;
+
+    const req = { uid: 'a1', params: { uid: 'u1' }, body: { tipo: 'perfil' }, file: { filename: 'nuevo.jpg' } };
+    const res = makeRes();
+    await adminUploadDriverImage(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(driverDoc.imageProfile, '/api/usuarios/admin/drivers/imagen/nuevo.jpg');
+    // Verifica que se intentó borrar el archivo anterior
+    assert.ok(deletedPath && deletedPath.endsWith(path.join('uploads/drivers', 'viejo.jpg')),
+        `debería intentar borrar viejo.jpg, borró: ${deletedPath}`);
+});
+
 test('adminUploadDriverImage 200 setea imageDPI1 cuando tipo=dpi1', async (t) => {
     const orig = Driver.findOne;
     t.after(() => { Driver.findOne = orig; });

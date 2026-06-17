@@ -81,6 +81,28 @@ test('adminListDrivers limita limit a 100 maximo', async (t) => {
     assert.equal(res.body.limit, 100);
 });
 
+test('adminListDrivers escapa metacaracteres de regex en search', async (t) => {
+    const original = Driver.aggregate;
+    t.after(() => { Driver.aggregate = original; });
+
+    let captured;
+    Driver.aggregate = async (pipeline) => {
+        captured = pipeline;
+        return [{ drivers: [], meta: [] }];
+    };
+
+    // Patrón con metacaracteres que sin escape causarían error de regex
+    const req = { uid: 'a1', query: { search: 'a.b(c)' } };
+    const res = makeRes();
+    await adminListDrivers(req, res);
+    assert.equal(res.statusCode, 200);
+    const searchMatch = captured.find(s => s.$match && s.$match.$or);
+    assert.ok(searchMatch, 'debe incluir $match de búsqueda');
+    // El regex debe tener los metacaracteres escapados
+    const regexVal = searchMatch.$match.$or[0]['usuario.nombre'].$regex;
+    assert.equal(regexVal, 'a\\.b\\(c\\)');
+});
+
 test('adminListDrivers transforma el shape a {driver, usuario}', async (t) => {
     const original = Driver.aggregate;
     t.after(() => { Driver.aggregate = original; });
