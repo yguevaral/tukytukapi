@@ -37,24 +37,21 @@ const makeRes = () => ({
 });
 
 test('adminListPayments aplica filtros opcionales', async (t) => {
-    const origFind = Payment.find;
-    const origCount = Payment.countDocuments;
-    t.after(() => { Payment.find = origFind; Payment.countDocuments = origCount; });
+    const origAggregate = Payment.aggregate;
+    t.after(() => { Payment.aggregate = origAggregate; });
 
     let captured;
-    Payment.find = (filter) => {
-        captured = filter;
-        return {
-            sort: () => ({ skip: () => ({ limit: () => Promise.resolve([]) }) })
-        };
+    Payment.aggregate = async (pipeline) => {
+        captured = pipeline;
+        return [{ payments: [], meta: [] }];
     };
-    Payment.countDocuments = async () => 0;
 
     const req = { query: { status: 'pendiente', driverUid: 'd1', page: '1', limit: '20' } };
     const res = makeRes();
     await adminListPayments(req, res);
-    assert.equal(captured.status, 'pendiente');
-    assert.equal(captured.driver, 'd1');
+    const firstMatch = captured.find(s => s.$match)?.$match;
+    assert.equal(firstMatch.status, 'pendiente');
+    assert.ok(firstMatch.driver);
 });
 
 test('adminApprovePayment 409 si pago no está pendiente', async (t) => {

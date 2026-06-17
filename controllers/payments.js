@@ -1,6 +1,7 @@
 const { response } = require('express');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 
 const Payment = require('../models/payment');
 const Driver = require('../models/driver');
@@ -130,18 +131,42 @@ const adminListPayments = async (req, res = response) => {
     try {
         const { status, driverUid } = req.query;
         const page = Math.max(parseInt(req.query.page) || 1, 1);
-        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
-        const filter = {};
-        if (status) filter.status = status;
-        if (driverUid) filter.driver = driverUid;
+        const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
 
-        const [payments, total] = await Promise.all([
-            Payment.find(filter)
-                .sort({ createdAt: -1 })
-                .skip((page - 1) * limit)
-                .limit(limit),
-            Payment.countDocuments(filter)
-        ]);
+        const firstMatch = {};
+        if (status) firstMatch.status = status;
+        if (driverUid) {
+            try { firstMatch.driver = new mongoose.Types.ObjectId(driverUid); }
+            catch { firstMatch.driver = driverUid; }
+        }
+
+        const pipeline = [
+            { $match: firstMatch },
+            { $lookup: { from: 'usuarios', localField: 'driver', foreignField: '_id', as: '_usuario' } },
+            { $unwind: { path: '$_usuario', preserveNullAndEmptyArrays: true } },
+            { $lookup: { from: 'drivers', localField: 'driver', foreignField: 'usuario', as: '_driver' } },
+            { $unwind: { path: '$_driver', preserveNullAndEmptyArrays: true } },
+            { $addFields: {
+                driverNombre: '$_usuario.nombre',
+                driverApellido: '$_usuario.apellido',
+                driverPlate: '$_driver.plate'
+            }},
+            { $project: { _usuario: 0, _driver: 0 } },
+            {
+                $facet: {
+                    payments: [
+                        { $sort: { createdAt: -1 } },
+                        { $skip: (page - 1) * limit },
+                        { $limit: limit }
+                    ],
+                    meta: [{ $count: 'total' }]
+                }
+            }
+        ];
+
+        const result = await Payment.aggregate(pipeline);
+        const payments = (result[0]?.payments ?? []).map((p) => ({ ...p, uid: p._id }));
+        const total = result[0]?.meta?.[0]?.total ?? 0;
         return res.status(200).json({ ok: true, payments, total, page, limit });
     } catch (err) {
         console.error('adminListPayments', { uid: req.uid, err: err.message });
