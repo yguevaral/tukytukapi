@@ -210,15 +210,28 @@ const cancelUserTrip = async (req, res = response) => {
         if (String(trip.usuario) !== String(req.uid)) {
             return res.status(403).json({ ok: false, msg: 'No autorizado' });
         }
-        if (trip.user_status !== 'S') {
+        if (!['S', 'A', 'P'].includes(trip.user_status)) {
             return res.status(409).json({
                 ok: false,
-                msg: 'Solo se puede cancelar mientras está solicitado'
+                msg: 'Este viaje ya no se puede cancelar'
             });
         }
+
+        const wasAssigned = trip.user_status === 'A' || trip.user_status === 'P';
         trip.user_status = 'C';
         trip.cancelledAt = new Date();
         await trip.save();
+
+        // Si había conductor asignado, notificarle por socket para que su UI
+        // reaccione (la app del conductor ya escucha 'trip-status-changed').
+        if (wasAssigned && trip.driver) {
+            const { io } = require('../index');
+            io.to(String(trip.driver)).emit('trip-status-changed', {
+                user_status: 'C',
+                driver_status: trip.driver_status,
+            });
+        }
+
         return res.status(200).json({ ok: true, msg: 'Trip cancelado', trip });
     } catch (err) {
         console.error('cancelUserTrip', { uid: req.uid, err: err.message });
