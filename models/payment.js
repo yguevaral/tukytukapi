@@ -11,7 +11,7 @@ const PaymentSchema = Schema({
     durationDays: { type: Number, required: true },
     status: {
         type: String,
-        enum: ['pendiente', 'aprobado', 'rechazado'],
+        enum: ['pendiente', 'aprobado', 'rechazado', 'vencido'],
         default: 'pendiente',
         index: true
     },
@@ -25,7 +25,16 @@ const PaymentSchema = Schema({
     reviewedBy: { type: String },
     reviewedAt: { type: Date },
     startsAt: { type: Date },
-    expiresAt: { type: Date }
+    expiresAt: { type: Date },
+    events: {
+        type: [{
+            type: { type: String, required: true },
+            at: { type: Date, required: true, default: () => new Date() },
+            by: { type: String },
+            reason: { type: String }
+        }],
+        default: []
+    }
 }, { timestamps: true });
 
 PaymentSchema.index({ driver: 1, status: 1, expiresAt: -1 });
