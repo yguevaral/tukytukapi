@@ -45,6 +45,9 @@ const DriverSchema = Schema({
     timestamps: true
 });
 
+DriverSchema.index({ plate: 1 });
+DriverSchema.index({ status: 1, usuario: 1 });
+
 DriverSchema.method('toJSON', function() {
     const { __v, _id, password, ...object } = this.toObject();
     object.uid = _id;
