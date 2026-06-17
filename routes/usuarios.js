@@ -17,6 +17,7 @@ const {
     adminSetSpecialPricing,
     adminListDrivers,
     adminGetDriver,
+    adminUpdateDriver,
     setOnline
 } = require('../controllers/usuarios');
 
@@ -68,6 +69,14 @@ router.post('/driver/admin-create', [
 router.get('/admin/drivers', [validarJWT, validarAdmin], adminListDrivers);
 
 router.get('/admin/drivers/:uid', [validarJWT, validarAdmin], adminGetDriver);
+
+router.put('/admin/drivers/:uid', [
+    validarJWT,
+    validarAdmin,
+    check('email').optional().isEmail().withMessage('email inválido'),
+    check('status').optional().isIn(['A', 'R', 'P']).withMessage('status inválido'),
+    validarCampos
+], adminUpdateDriver);
 
 router.get('/driver', validarJWT, getDriver);
 

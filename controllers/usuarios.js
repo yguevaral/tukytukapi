@@ -323,6 +323,56 @@ const adminGetDriver = async (req, res = response) => {
     }
 };
 
+// PUT /api/usuarios/admin/drivers/:uid - Actualiza conductor (diff parcial)
+const adminUpdateDriver = async (req, res = response) => {
+    try {
+        const { uid } = req.params;
+        const usuario = await Usuario.findById(uid);
+        if (!usuario || usuario.type !== 'C') {
+            return res.status(404).json({ ok: false, msg: 'Conductor no encontrado' });
+        }
+
+        const userFields = ['nombre', 'apellido', 'email', 'telefono'];
+        const userUpdate = {};
+        for (const f of userFields) {
+            if (req.body[f] !== undefined) userUpdate[f] = req.body[f];
+        }
+
+        // Validar email duplicado solo si se envía un email diferente al actual
+        if (userUpdate.email !== undefined && userUpdate.email !== usuario.email) {
+            const existing = await Usuario.findOne({ email: userUpdate.email });
+            if (existing && String(existing._id) !== String(usuario._id)) {
+                return res.status(409).json({ ok: false, msg: 'email_duplicado' });
+            }
+        }
+
+        // Aplicar cambios de usuario
+        for (const k of Object.keys(userUpdate)) usuario[k] = userUpdate[k];
+        if (Object.keys(userUpdate).length) await usuario.save();
+
+        const driverFields = ['plate', 'locallicense', 'address', 'status', 'commentsAdmin'];
+        const driverUpdate = {};
+        for (const f of driverFields) {
+            if (req.body[f] !== undefined) driverUpdate[f] = req.body[f];
+        }
+
+        // Solo consultar Driver si hay campos de conductor a actualizar
+        let driver = null;
+        if (Object.keys(driverUpdate).length) {
+            driver = await Driver.findOne({ usuario: uid });
+            if (driver) {
+                for (const k of Object.keys(driverUpdate)) driver[k] = driverUpdate[k];
+                await driver.save();
+            }
+        }
+
+        return res.status(200).json({ ok: true, usuario, driver });
+    } catch (err) {
+        console.error('adminUpdateDriver', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 // PUT /api/usuarios/online - Gate al ponerse en línea
 const setOnline = async (req, res = response) => {
     try {
@@ -362,5 +412,6 @@ module.exports = {
     adminSetSpecialPricing,
     adminListDrivers,
     adminGetDriver,
+    adminUpdateDriver,
     setOnline
 }
