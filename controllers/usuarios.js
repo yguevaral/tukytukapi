@@ -1,4 +1,5 @@
 const { response } = require('express');
+const bcrypt = require('bcryptjs');
 const Usuario = require('../models/usuario');
 const Driver = require('../models/driver');
 const { sendEmailNotificationNewDriverDocs, sendEmailNotificationUserDriverRequestUpdate } = require('../helpers/email');
@@ -155,10 +156,54 @@ const getDriver = async ( req, res = response ) => {
 
 
 
+const adminCreateDriver = async (req, res = response) => {
+    const {
+        nombre, apellido = '', email, telefono = '', password,
+        imageProfile = '', imageDPI1 = '', imageDPI2 = '',
+        plate, locallicense, address
+    } = req.body;
+
+    try {
+        const existe = await Usuario.findOne({ email });
+        if (existe) {
+            return res.status(400).json({ ok: false, msg: 'El correo ya está registrado' });
+        }
+
+        const salt = bcrypt.genSaltSync();
+        const usuario = new Usuario({
+            nombre, apellido, email, telefono,
+            type: 'C',
+            register_type: 'E',
+            password: bcrypt.hashSync(password, salt),
+        });
+        await usuario.save();
+
+        const driver = new Driver({
+            usuario: usuario._id,
+            imageProfile, imageDPI1, imageDPI2,
+            plate, locallicense, address,
+            status: 'A',
+            commentsAdmin: 'Creado por admin',
+        });
+        await driver.save();
+
+        return res.json({
+            ok: true,
+            msg: 'Conductor creado y aprobado',
+            usuario,
+            driver,
+        });
+    } catch (e) {
+        console.log('adminCreateDriver error', e);
+        return res.status(500).json({ ok: false, msg: 'Hable con el administrador' });
+    }
+};
+
 module.exports = {
     getUsuarios,
     setDriverSingin,
     getListDriver,
     adminListDriverSetStatus,
-    getDriver
+    getDriver,
+    adminCreateDriver
 }
