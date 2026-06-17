@@ -8,7 +8,8 @@ const TripSchema = Schema({
     },
     user_status: {
         type: String,
-        default: "S"
+        enum: ['S', 'A', 'P', 'F', 'C'],
+        default: 'S'
     },
     start_lat: {
         type: String,
@@ -43,11 +44,17 @@ const TripSchema = Schema({
         type: String,
         default: ""
     },
-
+    rejectedBy: {
+        type: [{ type: Schema.Types.ObjectId, ref: 'Usuario' }],
+        default: []
+    },
+    cancelledAt: { type: Date }
 
 }, {
     timestamps: true
 });
+
+TripSchema.index({ user_status: 1, usuario: 1, rejectedBy: 1 });
 
 TripSchema.method('toJSON', function() {
     const { __v, _id, password, ...object } = this.toObject();
