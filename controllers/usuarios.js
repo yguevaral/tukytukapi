@@ -307,6 +307,22 @@ const adminListDrivers = async (req, res = response) => {
     }
 };
 
+// GET /api/usuarios/admin/drivers/:uid - Obtener detalle de conductor
+const adminGetDriver = async (req, res = response) => {
+    try {
+        const { uid } = req.params;
+        const usuario = await Usuario.findById(uid);
+        if (!usuario || usuario.type !== 'C') {
+            return res.status(404).json({ ok: false, msg: 'Conductor no encontrado' });
+        }
+        const driver = await Driver.findOne({ usuario: uid });
+        return res.status(200).json({ ok: true, usuario, driver });
+    } catch (err) {
+        console.error('adminGetDriver', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 // PUT /api/usuarios/online - Gate al ponerse en línea
 const setOnline = async (req, res = response) => {
     try {
@@ -345,5 +361,6 @@ module.exports = {
     adminCreateDriver,
     adminSetSpecialPricing,
     adminListDrivers,
+    adminGetDriver,
     setOnline
 }
