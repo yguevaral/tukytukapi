@@ -126,6 +126,44 @@ const serveReceipt = async (req, res = response) => {
     }
 };
 
+// GET /api/payments/admin/:id
+const adminGetPaymentDetail = async (req, res = response) => {
+    try {
+        const { id } = req.params;
+        let oid;
+        try { oid = new mongoose.Types.ObjectId(id); }
+        catch { return res.status(400).json({ ok: false, msg: 'id inválido' }); }
+
+        const pipeline = [
+            { $match: { _id: oid } },
+            { $lookup: { from: 'usuarios', localField: 'driver', foreignField: '_id', as: '_usuario' } },
+            { $unwind: { path: '$_usuario', preserveNullAndEmptyArrays: true } },
+            { $lookup: { from: 'drivers', localField: 'driver', foreignField: 'usuario', as: '_driver' } },
+            { $unwind: { path: '$_driver', preserveNullAndEmptyArrays: true } },
+            { $addFields: {
+                driverNombre: '$_usuario.nombre',
+                driverApellido: '$_usuario.apellido',
+                driverPlate: '$_driver.plate'
+            }},
+            { $project: { _usuario: 0, _driver: 0 } }
+        ];
+
+        const result = await Payment.aggregate(pipeline);
+        if (!result.length) {
+            return res.status(404).json({ ok: false, msg: 'Pago no encontrado' });
+        }
+        const row = result[0];
+        const { driverNombre, driverApellido, driverPlate, ...payment } = row;
+        payment.uid = payment._id;
+        return res.status(200).json({
+            ok: true, payment, driverNombre, driverApellido, driverPlate
+        });
+    } catch (err) {
+        console.error('adminGetPaymentDetail', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 // GET /api/payments/admin/list
 const adminListPayments = async (req, res = response) => {
     try {
@@ -320,6 +358,7 @@ module.exports = {
     listDriverPayments,
     getDriverStatus,
     serveReceipt,
+    adminGetPaymentDetail,
     adminListPayments,
     adminApprovePayment,
     adminRejectPayment,

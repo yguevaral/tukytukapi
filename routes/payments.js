@@ -41,6 +41,11 @@ router.get('/admin/list',
     paymentsController.adminListPayments
 );
 
+router.get('/admin/:id',
+    [validarJWT, validarAdmin],
+    paymentsController.adminGetPaymentDetail
+);
+
 router.put('/admin/:id/approve',
     [validarJWT, validarAdmin],
     paymentsController.adminApprovePayment
