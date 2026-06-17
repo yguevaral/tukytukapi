@@ -81,6 +81,16 @@ const getUserListTripCompleted = async ( req, res = response ) => {
 
 const getDriverListTrip = async ( req, res = response ) => {
     try {
+        // Defensa en profundidad: si el conductor ya tiene viaje activo (R o P),
+        // no devolver viajes solicitados — la regla es 1 viaje activo por conductor.
+        const activo = await Trip.findOne({
+            driver: req.uid,
+            driver_status: { $in: ['R', 'P'] }
+        });
+        if ( activo ) {
+            return res.json({ ok: true, msg: 'Conductor con viaje activo', trips: [] });
+        }
+
         const trips = await Trip.find({
             user_status: 'S',
             usuario: { $ne: req.uid },
@@ -159,24 +169,36 @@ const setDriverStatusTrip = async (req, res = response) => {
 };
 
 const getDriverActiveTrip = async ( req, res = response ) => {
-
-    const trip = await Trip.findOne({ $and: [{driver: req.uid, driver_status: ["R", "P"]}]});
-    if ( !trip ) {
-        return res.status(200).json({
-            ok: false,
-            msg: 'Trip no encontrado',
-            trip: []
+    try {
+        // Query con $in — antes pasaba el array directo a driver_status, lo que en
+        // Mongoose se interpreta como valor escalar y nunca matchea.
+        const trip = await Trip.findOne({
+            driver: req.uid,
+            driver_status: { $in: ['R', 'P'] }
         });
-    }    
 
-    const usuario = await usuario.findOne({ $and: [{usuario: trip.usuario}]});
+        if ( !trip ) {
+            return res.status(200).json({
+                ok: false,
+                msg: 'Trip no encontrado',
+                trip: null
+            });
+        }
 
-    res.json({
-        ok: true,
-        msg: 'Trip encontrado',
-        trip,
-        usuario
-    });
+        // La variable se llamaba `usuario` igual que el modelo importado,
+        // lo que producía un ReferenceError por shadowing en TDZ.
+        const usuarioDoc = await usuario.findOne({ _id: trip.usuario });
+
+        res.json({
+            ok: true,
+            msg: 'Trip encontrado',
+            trip,
+            usuario: usuarioDoc
+        });
+    } catch (err) {
+        console.error('getDriverActiveTrip', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
 }
 
 const cancelUserTrip = async (req, res = response) => {
