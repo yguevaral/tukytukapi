@@ -372,6 +372,31 @@ const adminUpdateDriver = async (req, res = response) => {
     }
 };
 
+// POST /api/usuarios/admin/drivers/:uid/imagen - Subir imagen de conductor
+const adminUploadDriverImage = async (req, res = response) => {
+    try {
+        const { uid } = req.params;
+        const { tipo } = req.body || {};
+        const fieldMap = { perfil: 'imageProfile', dpi1: 'imageDPI1', dpi2: 'imageDPI2' };
+        if (!fieldMap[tipo]) {
+            return res.status(400).json({ ok: false, msg: 'tipo inválido (perfil|dpi1|dpi2)' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ ok: false, msg: 'Falta la imagen' });
+        }
+        const driver = await Driver.findOne({ usuario: uid });
+        if (!driver) {
+            return res.status(404).json({ ok: false, msg: 'Conductor no encontrado' });
+        }
+        driver[fieldMap[tipo]] = `/api/usuarios/admin/drivers/imagen/${req.file.filename}`;
+        await driver.save();
+        return res.status(200).json({ ok: true, driver });
+    } catch (err) {
+        console.error('adminUploadDriverImage', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 // PUT /api/usuarios/online - Gate al ponerse en línea
 const setOnline = async (req, res = response) => {
     try {
@@ -412,5 +437,6 @@ module.exports = {
     adminListDrivers,
     adminGetDriver,
     adminUpdateDriver,
-    setOnline
+    setOnline,
+    adminUploadDriverImage
 }

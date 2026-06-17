@@ -18,8 +18,11 @@ const {
     adminListDrivers,
     adminGetDriver,
     adminUpdateDriver,
-    setOnline
+    setOnline,
+    adminUploadDriverImage
 } = require('../controllers/usuarios');
+
+const uploadDrivers = require('../helpers/upload-drivers');
 
 const router = Router();
 
@@ -79,6 +82,11 @@ router.put('/admin/drivers/:uid', [
 ], adminUpdateDriver);
 
 router.get('/driver', validarJWT, getDriver);
+
+router.post('/admin/drivers/:uid/imagen',
+    [validarJWT, validarAdmin, uploadDrivers.single('imagen')],
+    adminUploadDriverImage
+);
 
 router.put('/admin/:driverUid/special-pricing', [
     validarJWT,

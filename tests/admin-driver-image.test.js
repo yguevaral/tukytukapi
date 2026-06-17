@@ -1,0 +1,83 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const mongoose = require('mongoose');
+
+const Driver = require('../models/driver');
+const { adminUploadDriverImage } = require('../controllers/usuarios');
+
+const makeRes = () => ({
+    statusCode: 200, body: null,
+    status(c) { this.statusCode = c; return this; },
+    json(b) { this.body = b; return this; }
+});
+
+test('adminUploadDriverImage 400 si tipo invalido', async () => {
+    const req = { uid: 'a1', params: { uid: 'u1' }, body: { tipo: 'mal' }, file: { filename: 'x.jpg' } };
+    const res = makeRes();
+    await adminUploadDriverImage(req, res);
+    assert.equal(res.statusCode, 400);
+});
+
+test('adminUploadDriverImage 400 si no hay archivo', async () => {
+    const req = { uid: 'a1', params: { uid: 'u1' }, body: { tipo: 'perfil' }, file: null };
+    const res = makeRes();
+    await adminUploadDriverImage(req, res);
+    assert.equal(res.statusCode, 400);
+});
+
+test('adminUploadDriverImage 404 si driver no existe', async (t) => {
+    const orig = Driver.findOne;
+    t.after(() => { Driver.findOne = orig; });
+    Driver.findOne = async () => null;
+
+    const req = { uid: 'a1', params: { uid: 'u1' }, body: { tipo: 'perfil' }, file: { filename: 'x.jpg' } };
+    const res = makeRes();
+    await adminUploadDriverImage(req, res);
+    assert.equal(res.statusCode, 404);
+});
+
+test('adminUploadDriverImage 200 setea imageProfile cuando tipo=perfil', async (t) => {
+    const orig = Driver.findOne;
+    t.after(() => { Driver.findOne = orig; });
+
+    const driverDoc = {
+        imageProfile: '', imageDPI1: '', imageDPI2: '',
+        save: async function() { return this; }
+    };
+    Driver.findOne = async () => driverDoc;
+
+    const req = { uid: 'a1', params: { uid: 'u1' }, body: { tipo: 'perfil' }, file: { filename: '123-abc.jpg' } };
+    const res = makeRes();
+    await adminUploadDriverImage(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(driverDoc.imageProfile, '/api/usuarios/admin/drivers/imagen/123-abc.jpg');
+    assert.equal(driverDoc.imageDPI1, '');
+});
+
+test('adminUploadDriverImage 200 setea imageDPI1 cuando tipo=dpi1', async (t) => {
+    const orig = Driver.findOne;
+    t.after(() => { Driver.findOne = orig; });
+    const driverDoc = {
+        imageProfile: '', imageDPI1: '', imageDPI2: '',
+        save: async function() { return this; }
+    };
+    Driver.findOne = async () => driverDoc;
+    const req = { uid: 'a1', params: { uid: 'u1' }, body: { tipo: 'dpi1' }, file: { filename: 'd1.jpg' } };
+    const res = makeRes();
+    await adminUploadDriverImage(req, res);
+    assert.equal(driverDoc.imageDPI1, '/api/usuarios/admin/drivers/imagen/d1.jpg');
+});
+
+test('adminUploadDriverImage 200 setea imageDPI2 cuando tipo=dpi2', async (t) => {
+    const orig = Driver.findOne;
+    t.after(() => { Driver.findOne = orig; });
+    const driverDoc = {
+        imageProfile: '', imageDPI1: '', imageDPI2: '',
+        save: async function() { return this; }
+    };
+    Driver.findOne = async () => driverDoc;
+    const req = { uid: 'a1', params: { uid: 'u1' }, body: { tipo: 'dpi2' }, file: { filename: 'd2.jpg' } };
+    const res = makeRes();
+    await adminUploadDriverImage(req, res);
+    assert.equal(driverDoc.imageDPI2, '/api/usuarios/admin/drivers/imagen/d2.jpg');
+});
