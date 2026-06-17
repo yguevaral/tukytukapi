@@ -100,51 +100,63 @@ const getDriverListTrip = async ( req, res = response ) => {
     }
 }
 
-const setDriverAcceptTrip = async ( req, res = response ) => {
+const setDriverAcceptTrip = async (req, res = response) => {
+    try {
+        const trip = await Trip.findOne({ _id: req.body.uid_trip });
+        if (!trip) {
+            return res.status(404).json({ ok: false, msg: 'Trip no encontrado' });
+        }
+        const rejected = (trip.rejectedBy || []).some(id => String(id) === String(req.uid));
+        if (rejected) {
+            return res.status(409).json({ ok: false, msg: 'Ya rechazaste este viaje' });
+        }
+        if (trip.user_status !== 'S') {
+            return res.status(409).json({ ok: false, msg: 'Viaje no disponible' });
+        }
 
-    const trip = await Trip.findOne({ _id: req.body.uid_trip });
-    if ( !trip ) {
-        return res.status(200).json({
-            ok: false,
-            msg: 'Trip no encontrado'
-        });
+        trip.user_status = 'A';
+        trip.driver_status = 'R';
+        trip.driver = req.uid;
+        trip.driver_start_lat = req.body.driver_start_lat;
+        trip.driver_start_lng = req.body.driver_start_lng;
+        await trip.save();
+
+        const { io } = require('../index');
+        io.to(String(trip.usuario)).emit('trip-accepted', { trip });
+
+        return res.status(200).json({ ok: true, msg: 'Trip aceptado', trip });
+    } catch (err) {
+        console.error('setDriverAcceptTrip', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
     }
-    
-    trip.user_status = "A";
-    trip.driver_status = "R";
-    trip.driver = req.uid;
-    trip.driver_start_lat = req.body.driver_start_lat;
-    trip.driver_start_lng = req.body.driver_start_lng;
-    await trip.save();
+};
 
-    res.json({
-        ok: true,
-        msg: 'Trip aceptado',
-        trip,
-    });
-}
+const setDriverStatusTrip = async (req, res = response) => {
+    try {
+        const trip = await Trip.findOne({ _id: req.body.uid_trip });
+        if (!trip) {
+            return res.status(404).json({ ok: false, msg: 'Trip no encontrado' });
+        }
+        trip.driver_status = req.body.driver_status;
+        if (req.body.driver_status === 'F') trip.user_status = 'F';
+        if (req.body.driver_status === 'P') trip.user_status = 'P';
+        await trip.save();
 
-const setDriverStatusTrip = async ( req, res = response ) => {
+        if (req.body.driver_status === 'P' || req.body.driver_status === 'F') {
+            const { io } = require('../index');
+            io.to(String(trip.usuario)).emit('trip-status-changed', {
+                uid_trip: String(trip._id),
+                user_status: trip.user_status,
+                driver_status: trip.driver_status
+            });
+        }
 
-    const trip = await Trip.findOne({ _id: req.body.uid_trip });
-    if ( !trip ) {
-        return res.status(200).json({
-            ok: false,
-            msg: 'Trip no encontrado'
-        });
+        return res.status(200).json({ ok: true, msg: 'Trip actualizado', trip });
+    } catch (err) {
+        console.error('setDriverStatusTrip', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
     }
-    
-    trip.driver_status = req.body.driver_status;
-    if( req.body.driver_status == "F" ) trip.user_status = "F";
-    if( req.body.driver_status == "P" ) trip.user_status = "P";
-    await trip.save();
-
-    res.json({
-        ok: true,
-        msg: 'Trip actualizado',
-        trip,
-    });
-}
+};
 
 const getDriverActiveTrip = async ( req, res = response ) => {
 
