@@ -80,23 +80,24 @@ const getUserListTripCompleted = async ( req, res = response ) => {
 }
 
 const getDriverListTrip = async ( req, res = response ) => {
+    try {
+        const trips = await Trip.find({
+            user_status: 'S',
+            usuario: { $ne: req.uid },
+            rejectedBy: { $ne: req.uid }
+        })
+        .sort({ createdAt: 'desc' })
+        .limit(10);
 
-
-    const trips = await Trip.find({ $and: [{user_status: "S"}, {usuario: {$ne: req.uid}}] }).sort({ createdAt: 'desc' }).limit(10);
-    if ( !trips ) {
-        return res.status(200).json({
-            ok: false,
-            msg: 'No hay viajes disponibles',
-            tripDB: []
+        return res.json({
+            ok: true,
+            msg: 'Viajes disponibles',
+            trips,
         });
+    } catch (err) {
+        console.error('getDriverListTrip', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
     }
-    
-
-    res.json({
-        ok: true,
-        msg: 'Viajes disponibles',
-        trips,
-    });
 }
 
 const setDriverAcceptTrip = async ( req, res = response ) => {
@@ -191,6 +192,22 @@ const cancelUserTrip = async (req, res = response) => {
     }
 };
 
+const setDriverRejectTrip = async (req, res = response) => {
+    try {
+        const result = await Trip.updateOne(
+            { _id: req.body.uid_trip, user_status: 'S' },
+            { $addToSet: { rejectedBy: req.uid } }
+        );
+        if (result.matchedCount === 0) {
+            return res.status(409).json({ ok: false, msg: 'Viaje no disponible' });
+        }
+        return res.status(200).json({ ok: true, msg: 'Viaje rechazado' });
+    } catch (err) {
+        console.error('setDriverRejectTrip', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 module.exports = {
     setUserTrip,
     getUserActiveTrip,
@@ -200,5 +217,6 @@ module.exports = {
     setDriverStatusTrip,
     getDriverActiveTrip,
     getUserTrip,
-    cancelUserTrip
+    cancelUserTrip,
+    setDriverRejectTrip
 }

@@ -60,4 +60,10 @@ router.put('/user/cancelTrip', [
     validarJWT
 ], tripController.cancelUserTrip);
 
+router.put('/driver/rejectTrip', [
+    check('uid_trip', 'uid_trip es obligatorio').not().isEmpty(),
+    validarCampos,
+    validarJWT
+], tripController.setDriverRejectTrip);
+
 module.exports = router;
