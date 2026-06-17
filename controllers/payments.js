@@ -353,6 +353,53 @@ const adminUpdateSettings = async (req, res = response) => {
     }
 };
 
+// PATCH /api/payments/admin/:id (editar comentario + reemplazar comprobante)
+const adminPatchPayment = async (req, res = response) => {
+    try {
+        const payment = await Payment.findById(req.params.id);
+        if (!payment) {
+            return res.status(404).json({ ok: false, msg: 'Pago no encontrado' });
+        }
+        if (payment.status === 'aprobado' || payment.status === 'vencido') {
+            return res.status(409).json({ ok: false, msg: 'No se puede editar un pago cerrado' });
+        }
+
+        let changed = false;
+
+        const newComment = req.body && req.body.adminComment;
+        if (newComment != null && String(newComment) !== String(payment.adminComment || '')) {
+            payment.adminComment = String(newComment);
+            appendEvent(payment, 'comentario_editado', req.uid, payment.adminComment);
+            changed = true;
+        }
+
+        if (req.file) {
+            const oldUrl = payment.receiptUrl;
+            payment.receiptUrl = `/api/payments/receipt/${req.file.filename}`;
+            appendEvent(payment, 'comprobante_actualizado', req.uid);
+            changed = true;
+
+            if (oldUrl && oldUrl.startsWith('/api/payments/receipt/')) {
+                const oldName = oldUrl.split('/').pop();
+                if (oldName) {
+                    const oldPath = path.resolve('uploads/payments', oldName);
+                    fs.unlink(oldPath, () => {});
+                }
+            }
+        }
+
+        if (!changed) {
+            return res.status(400).json({ ok: false, msg: 'Sin cambios' });
+        }
+
+        await payment.save();
+        return res.status(200).json({ ok: true, payment });
+    } catch (err) {
+        console.error('adminPatchPayment', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 module.exports = {
     uploadDriverPayment,
     listDriverPayments,
@@ -364,5 +411,6 @@ module.exports = {
     adminRejectPayment,
     adminCreatePayment,
     adminGetSettings,
-    adminUpdateSettings
+    adminUpdateSettings,
+    adminPatchPayment
 };

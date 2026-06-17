@@ -13,6 +13,21 @@ const paymentsController = require('../controllers/payments');
 
 const router = Router();
 
+// Adapter multer para PATCH (campo 'imagen', opcional)
+const uploadPaymentReceiptMw = (req, res, next) => {
+    upload.single('imagen')(req, res, (err) => {
+        if (err) {
+            const msg = err.code === 'LIMIT_FILE_SIZE'
+                ? 'archivo_demasiado_grande'
+                : err.message === 'TIPO_INVALIDO'
+                    ? 'tipo_invalido'
+                    : 'error_de_subida';
+            return res.status(400).json({ ok: false, msg });
+        }
+        next();
+    });
+};
+
 // Rutas del conductor
 router.post('/driver/upload',
     [validarJWT, validarConductor, upload.single('receipt')],
@@ -71,6 +86,11 @@ router.post('/admin/create',
         validarCampos
     ],
     paymentsController.adminCreatePayment
+);
+
+router.patch('/admin/:id',
+    [validarJWT, validarAdmin, uploadPaymentReceiptMw],
+    paymentsController.adminPatchPayment
 );
 
 router.get('/admin/settings',
