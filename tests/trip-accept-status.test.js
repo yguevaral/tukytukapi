@@ -141,3 +141,25 @@ test('setDriverStatusTrip emite trip-status-changed cuando driver_status es F', 
     assert.equal(ioCalls[0].event, 'trip-status-changed');
     assert.equal(ioCalls[0].payload.driver_status, 'F');
 });
+
+test('setDriverStatusTrip NO emite trip-status-changed cuando driver_status es R', async (t) => {
+    ioCalls.length = 0;
+    const original = Trip.findOne;
+    t.after(() => { Trip.findOne = original; });
+
+    const passengerId = new mongoose.Types.ObjectId();
+    const tripDoc = {
+        _id: 'trip-id-1',
+        usuario: passengerId,
+        user_status: 'A',
+        driver_status: 'R',
+        save: async function() { return this; }
+    };
+    Trip.findOne = async () => tripDoc;
+
+    const req = { uid: 'driver-1', body: { uid_trip: 'trip-id-1', driver_status: 'R' } };
+    const res = makeRes();
+    await setDriverStatusTrip(req, res);
+
+    assert.equal(ioCalls.length, 0, 'no debería emitir cuando driver_status no es P ni F');
+});
