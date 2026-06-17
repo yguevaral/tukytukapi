@@ -8,6 +8,15 @@ const Usuario = require('../models/usuario');
 const { getDriverPrice, getNextStartsAt, addDays, getSettings } = require('../helpers/driverPayment');
 const Settings = require('../models/settings');
 
+// Helper: agrega un evento al array events del documento (sin guardarlo)
+function appendEvent(payment, type, by, reason) {
+    if (!Array.isArray(payment.events)) payment.events = [];
+    const event = { type, at: new Date() };
+    if (by != null) event.by = String(by);
+    if (reason != null) event.reason = String(reason);
+    payment.events.push(event);
+}
+
 // POST /api/payments/driver/upload
 const uploadDriverPayment = async (req, res = response) => {
     try {
@@ -26,6 +35,7 @@ const uploadDriverPayment = async (req, res = response) => {
             createdBy: 'driver',
             receiptUrl: `/api/payments/receipt/${req.file.filename}`
         });
+        appendEvent(payment, 'creado', req.uid);
         await payment.save();
 
         return res.status(200).json({ ok: true, msg: 'Comprobante recibido', payment });
@@ -155,6 +165,7 @@ const adminApprovePayment = async (req, res = response) => {
         payment.status = 'aprobado';
         payment.reviewedBy = req.uid;
         payment.reviewedAt = new Date();
+        appendEvent(payment, 'aprobado', req.uid);
         await payment.save();
 
         io.to(String(payment.driver)).emit('payment-approved', { payment });
@@ -184,6 +195,7 @@ const adminRejectPayment = async (req, res = response) => {
         payment.adminComment = adminComment;
         payment.reviewedBy = req.uid;
         payment.reviewedAt = new Date();
+        appendEvent(payment, 'rechazado', req.uid, payment.adminComment);
         await payment.save();
 
         io.to(String(payment.driver)).emit('payment-rejected', { payment });
@@ -240,6 +252,7 @@ const adminCreatePayment = async (req, res = response) => {
             startsAt,
             expiresAt
         });
+        appendEvent(payment, 'creado', req.uid);
         await payment.save();
 
         io.to(String(driverUid)).emit('payment-approved', { payment });
