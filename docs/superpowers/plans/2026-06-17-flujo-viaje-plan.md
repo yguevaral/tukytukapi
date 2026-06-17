@@ -51,7 +51,7 @@
 
 ---
 
-## Tarea 1: Modelo Trip — estado C, rejectedBy, cancelledAt e índice
+## Task 1: Modelo Trip — estado C, rejectedBy, cancelledAt e índice
 
 **Files:**
 - Modify: `tukytukapi/models/trip.js`
@@ -205,7 +205,7 @@ git commit -m "feat(backend): trip soporta estado C cancelado, rejectedBy y canc
 
 ---
 
-## Tarea 2: Endpoint cancelTrip
+## Task 2: Endpoint cancelTrip
 
 **Files:**
 - Modify: `tukytukapi/controllers/trip.js` (agregar `cancelUserTrip`)
@@ -411,7 +411,7 @@ git commit -m "feat(backend): endpoint PUT /trip/user/cancelTrip"
 
 ---
 
-## Tarea 3: Endpoint rejectTrip y filtro en getDriverListTrip
+## Task 3: Endpoint rejectTrip y filtro en getDriverListTrip
 
 **Files:**
 - Modify: `tukytukapi/controllers/trip.js` (agregar `setDriverRejectTrip`, modificar `getDriverListTrip`)
@@ -620,7 +620,7 @@ git commit -m "feat(backend): rechazar viaje (driver) y filtrar rejectedBy en li
 
 ---
 
-## Tarea 4: acceptTrip y statusTrip — validación rejectedBy y emisión de sockets
+## Task 4: acceptTrip y statusTrip — validación rejectedBy y emisión de sockets
 
 **Files:**
 - Modify: `tukytukapi/controllers/trip.js` (`setDriverAcceptTrip`, `setDriverStatusTrip`)
@@ -891,7 +891,7 @@ git commit -m "feat(backend): acceptTrip y statusTrip emiten sockets y validan r
 
 ---
 
-## Tarea 5: Handler socket location-update
+## Task 5: Handler socket location-update
 
 **Files:**
 - Modify: `tukytukapi/sockets/socket.js`
@@ -978,7 +978,7 @@ git commit -m "feat(backend): handler socket location-update con validacion de v
 
 ---
 
-## Tarea 6: Mapbox token a `.env` y Constants
+## Task 6: Mapbox token a `.env` y Constants
 
 **Files:**
 - Modify: `tukytuk/.env` (si existe) y/o `tukytuk/.env.example`
@@ -1051,7 +1051,7 @@ git commit -m "chore(flutter): mapbox token desde .env via Constants"
 
 ---
 
-## Tarea 7: SearchBloc — estados loading/ok/failed y manejo de errores
+## Task 7: SearchBloc — estados loading/ok/failed y manejo de errores
 
 **Files:**
 - Modify: `tukytuk/lib/blocs/search/search_state.dart`
@@ -1187,7 +1187,7 @@ git commit -m "feat(flutter): SearchBloc maneja errores de Mapbox sin colgar la 
 
 ---
 
-## Tarea 8: SearchDestinationDelegate — banner de error y opción manual destacada
+## Task 8: SearchDestinationDelegate — banner de error y opción manual destacada
 
 **Files:**
 - Modify: `tukytuk/lib/delegates/search_destination_delegate.dart`
@@ -1301,7 +1301,7 @@ git commit -m "feat(flutter): banner de error en busqueda + opcion manual destac
 
 ---
 
-## Tarea 9: TripService.cancelTrip + botón cancelar en MapScreen
+## Task 9: TripService.cancelTrip + botón cancelar en MapScreen
 
 **Files:**
 - Modify: `tukytuk/lib/services/trip_service.dart`
@@ -1431,7 +1431,7 @@ git commit -m "feat(flutter): boton cancelar viaje en estado solicitando"
 
 ---
 
-## Tarea 10: Vista del conductor — eliminar mock data y listado real
+## Task 10: Vista del conductor — eliminar mock data y listado real
 
 **Files:**
 - Modify: `tukytuk/lib/pages/trip_driver_page.dart`
@@ -1614,7 +1614,7 @@ git commit -m "feat(flutter): trip_driver_page muestra viajes reales en lugar de
 
 ---
 
-## Tarea 11: TripPreviewSheet con polyline, tiempo, distancia y botones aceptar/rechazar
+## Task 11: TripPreviewSheet con polyline, tiempo, distancia y botones aceptar/rechazar
 
 **Files:**
 - Create: `tukytuk/lib/widgets/trip_preview_sheet.dart`
@@ -1837,7 +1837,7 @@ git commit -m "feat(flutter): trip_preview_sheet con ruta tiempo y distancia par
 
 ---
 
-## Tarea 12: SocketService — listeners trip-accepted, trip-status-changed, location-update y helpers de emisión
+## Task 12: SocketService — listeners trip-accepted, trip-status-changed, location-update y helpers de emisión
 
 **Files:**
 - Modify: `tukytuk/lib/services/socket_service.dart`
@@ -1996,7 +1996,7 @@ git commit -m "feat(flutter): socket service expone streams y emite ubicacion ca
 
 ---
 
-## Tarea 13: Integración en MapScreen (pasajero) y MapDriverScreen, polling a 5s
+## Task 13: Integración en MapScreen (pasajero) y MapDriverScreen, polling a 5s
 
 **Files:**
 - Modify: `tukytuk/lib/screens/map_screen.dart`
@@ -2136,7 +2136,7 @@ git commit -m "feat(flutter): ubicacion en vivo bidireccional y polling reducido
 
 ---
 
-## Tarea 14: Verificación manual del golden path
+## Task 14: Verificación manual del golden path
 
 **Files:**
 - Ninguno. Es un checkpoint humano.
