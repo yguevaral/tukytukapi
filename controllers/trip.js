@@ -222,11 +222,13 @@ const cancelUserTrip = async (req, res = response) => {
         trip.cancelledAt = new Date();
         await trip.save();
 
-        // Si había conductor asignado, notificarle por socket para que su UI
-        // reaccione (la app del conductor ya escucha 'trip-status-changed').
+        // Si había conductor asignado, emitir el evento para cuando el lado
+        // conductor lo consuma (su UI aún no reacciona — out of scope este
+        // sprint, pero el emit queda listo para el próximo).
         if (wasAssigned && trip.driver) {
             const { io } = require('../index');
             io.to(String(trip.driver)).emit('trip-status-changed', {
+                uid_trip: String(trip._id),
                 user_status: 'C',
                 driver_status: trip.driver_status,
             });
