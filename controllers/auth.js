@@ -6,6 +6,7 @@ const { generarJWT } = require('../helpers/jwt');
 const OTPCode = require('../models/otp_code');
 const { sendEmailCodeVerification } = require('../helpers/email');
 const { status } = require('express/lib/response');
+const { verifyGoogleIdToken } = require('../helpers/google-auth');
 
 const crearOTP = async (req, res = response ) => {
 
@@ -197,9 +198,57 @@ const renewToken = async( req, res = response) => {
 }
 
 
+const loginGoogle = async (req, res = response) => {
+    const { idToken, type } = req.body; // type='U' (pasajero, default) o 'C' (conductor)
+
+    try {
+        const profile = await verifyGoogleIdToken(idToken);
+
+        let usuario = await Usuario.findOne({ email: profile.email });
+
+        if (!usuario) {
+            usuario = new Usuario({
+                nombre: profile.givenName || profile.name || profile.email,
+                apellido: profile.familyName || '',
+                email: profile.email,
+                googleId: profile.googleId,
+                register_type: 'G',
+                type: type === 'C' ? 'U' : 'U', // siempre arranca como usuario; conductor se promueve al aprobar driver request
+            });
+            await usuario.save();
+        } else if (!usuario.googleId) {
+            // Existía registrado por email: vinculamos googleId
+            usuario.googleId = profile.googleId;
+            await usuario.save();
+        }
+
+        if (usuario.online === true) {
+            return res.status(200).json({
+                ok: false,
+                msg: 'El usuario ya está conectado'
+            });
+        }
+
+        const token = await generarJWT(usuario.id);
+
+        res.json({
+            ok: true,
+            usuario,
+            token,
+        });
+    } catch (error) {
+        console.log('loginGoogle error:', error.message);
+        return res.status(401).json({
+            ok: false,
+            msg: 'Token de Google inválido',
+        });
+    }
+};
+
 module.exports = {
     crearUsuario,
     login,
     renewToken,
-    crearOTP
+    crearOTP,
+    loginGoogle
 }
