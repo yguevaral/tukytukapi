@@ -56,6 +56,11 @@ router.get('/admin/list',
     paymentsController.adminListPayments
 );
 
+router.post('/admin/expire-overdue',
+    [validarJWT, validarAdmin],
+    paymentsController.adminExpireOverdue
+);
+
 router.get('/admin/:id',
     [validarJWT, validarAdmin],
     paymentsController.adminGetPaymentDetail

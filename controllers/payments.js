@@ -426,6 +426,41 @@ const adminExpirePayment = async (req, res = response) => {
     }
 };
 
+// POST /api/payments/admin/expire-overdue (masivo)
+const adminExpireOverdue = async (req, res = response) => {
+    try {
+        const now = new Date();
+        const overdue = await Payment.find({
+            status: 'aprobado',
+            expiresAt: { $lt: now }
+        });
+
+        const driversSet = new Set();
+        for (const p of overdue) {
+            p.status = 'vencido';
+            appendEvent(p, 'vencido', 'system');
+            await p.save();
+            driversSet.add(String(p.driver));
+        }
+
+        for (const driverUid of driversSet) {
+            await Usuario.updateOne(
+                { _id: driverUid, type: 'C' },
+                { $set: { online: false } }
+            );
+        }
+
+        return res.status(200).json({
+            ok: true,
+            expiredCount: overdue.length,
+            deactivatedDrivers: driversSet.size
+        });
+    } catch (err) {
+        console.error('adminExpireOverdue', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 module.exports = {
     uploadDriverPayment,
     listDriverPayments,
@@ -439,5 +474,6 @@ module.exports = {
     adminGetSettings,
     adminUpdateSettings,
     adminPatchPayment,
-    adminExpirePayment
+    adminExpirePayment,
+    adminExpireOverdue
 };
