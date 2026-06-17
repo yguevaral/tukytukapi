@@ -38,6 +38,8 @@ const DriverSchema = Schema({
         type: String,
         default: ''
     },
+    specialPrice: { type: Number },
+    specialDurationDays: { type: Number },
 
 }, {
     timestamps: true
