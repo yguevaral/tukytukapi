@@ -208,11 +208,25 @@ const adminSetSpecialPricing = async (req, res = response) => {
         const $set = {};
         const $unset = {};
 
-        if (body.specialPrice === null) $unset.specialPrice = '';
-        else if (body.specialPrice !== undefined) $set.specialPrice = Number(body.specialPrice);
+        if (body.specialPrice === null) {
+            $unset.specialPrice = '';
+        } else if (body.specialPrice !== undefined) {
+            const val = Number(body.specialPrice);
+            if (!Number.isFinite(val) || val < 0) {
+                return res.status(400).json({ ok: false, msg: 'specialPrice debe ser un número >= 0' });
+            }
+            $set.specialPrice = val;
+        }
 
-        if (body.specialDurationDays === null) $unset.specialDurationDays = '';
-        else if (body.specialDurationDays !== undefined) $set.specialDurationDays = Number(body.specialDurationDays);
+        if (body.specialDurationDays === null) {
+            $unset.specialDurationDays = '';
+        } else if (body.specialDurationDays !== undefined) {
+            const val = Number(body.specialDurationDays);
+            if (!Number.isInteger(val) || val <= 0) {
+                return res.status(400).json({ ok: false, msg: 'specialDurationDays debe ser un entero > 0' });
+            }
+            $set.specialDurationDays = val;
+        }
 
         const update = {};
         if (Object.keys($set).length) update.$set = $set;
@@ -223,6 +237,9 @@ const adminSetSpecialPricing = async (req, res = response) => {
             update,
             { new: true, upsert: false }
         );
+        if (!driver) {
+            return res.status(404).json({ ok: false, msg: 'Conductor no encontrado' });
+        }
         return res.status(200).json({ ok: true, driver });
     } catch (err) {
         console.error('adminSetSpecialPricing', { uid: req.uid, err: err.message });

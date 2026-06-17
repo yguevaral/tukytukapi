@@ -5,7 +5,7 @@ const { Router } = require('express');
 const { validarJWT } = require('../middlewares/validar-jwt');
 const { validarAdmin } = require('../middlewares/validar-admin');
 const { validarCampos } = require('../middlewares/validar-campos');
-const { check } = require('express-validator');
+const { check, param } = require('express-validator');
 
 const {
     getUsuarios,
@@ -68,7 +68,7 @@ router.get('/driver', validarJWT, getDriver);
 router.put('/admin/:driverUid/special-pricing', [
     validarJWT,
     validarAdmin,
-    check('driverUid', 'driverUid obligatorio').not().isEmpty(),
+    param('driverUid', 'driverUid obligatorio').not().isEmpty(),
     validarCampos
 ], adminSetSpecialPricing);
 

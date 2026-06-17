@@ -2,11 +2,13 @@
     path: api/payments
 */
 const { Router } = require('express');
+const { check } = require('express-validator');
 
 const upload = require('../helpers/upload');
 const { validarJWT } = require('../middlewares/validar-jwt');
 const { validarConductor } = require('../middlewares/validar-conductor');
 const { validarAdmin } = require('../middlewares/validar-admin');
+const { validarCampos } = require('../middlewares/validar-campos');
 const paymentsController = require('../controllers/payments');
 
 const router = Router();
@@ -45,12 +47,24 @@ router.put('/admin/:id/approve',
 );
 
 router.put('/admin/:id/reject',
-    [validarJWT, validarAdmin],
+    [
+        validarJWT,
+        validarAdmin,
+        check('adminComment', 'adminComment obligatorio (mín 3)').isLength({ min: 3 }),
+        validarCampos
+    ],
     paymentsController.adminRejectPayment
 );
 
 router.post('/admin/create',
-    [validarJWT, validarAdmin, upload.single('receipt')],
+    [
+        validarJWT,
+        validarAdmin,
+        upload.single('receipt'),
+        check('driverUid', 'driverUid obligatorio').not().isEmpty(),
+        check('adminComment', 'adminComment obligatorio (mín 3)').isLength({ min: 3 }),
+        validarCampos
+    ],
     paymentsController.adminCreatePayment
 );
 

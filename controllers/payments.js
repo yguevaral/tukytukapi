@@ -76,6 +76,13 @@ const serveReceipt = async (req, res = response) => {
     try {
         const { filename } = req.params;
 
+        // Defensa contra path traversal: solo caracteres seguros en el nombre de archivo
+        if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
+            return res.status(400).json({ ok: false, msg: 'Nombre de archivo inválido' });
+        }
+
+        const uploadsPaymentsDir = path.resolve(__dirname, '..', 'uploads', 'payments');
+
         const payment = await Payment.findOne({
             receiptUrl: `/api/payments/receipt/${filename}`
         });
@@ -93,6 +100,10 @@ const serveReceipt = async (req, res = response) => {
         }
 
         const filePath = path.resolve(__dirname, '..', 'uploads', 'payments', filename);
+        // Defensa en profundidad: verificar que la ruta resuelta esté dentro del directorio permitido
+        if (!filePath.startsWith(uploadsPaymentsDir + path.sep) && filePath !== uploadsPaymentsDir) {
+            return res.status(400).json({ ok: false, msg: 'Nombre de archivo inválido' });
+        }
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ ok: false, msg: 'Archivo no encontrado' });
         }
@@ -199,9 +210,19 @@ const adminCreatePayment = async (req, res = response) => {
         }
         const { io } = require('../index');
         const driver = await Driver.findOne({ usuario: driverUid });
-        const price = await getDriverPrice(driver || {});
+        if (!driver) {
+            return res.status(404).json({ ok: false, msg: 'Conductor no encontrado o no completó registro' });
+        }
+        const price = await getDriverPrice(driver);
         const finalAmount = amount != null ? Number(amount) : price.amount;
         const finalDuration = durationDays != null ? Number(durationDays) : price.durationDays;
+
+        if (!Number.isFinite(finalAmount) || finalAmount < 0) {
+            return res.status(400).json({ ok: false, msg: 'amount debe ser un número >= 0' });
+        }
+        if (!Number.isInteger(finalDuration) || finalDuration <= 0) {
+            return res.status(400).json({ ok: false, msg: 'durationDays debe ser un entero > 0' });
+        }
 
         const startsAt = await getNextStartsAt(driverUid);
         const expiresAt = addDays(startsAt, finalDuration);
