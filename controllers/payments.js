@@ -5,7 +5,8 @@ const fs = require('fs');
 const Payment = require('../models/payment');
 const Driver = require('../models/driver');
 const Usuario = require('../models/usuario');
-const { getDriverPrice, getNextStartsAt, addDays } = require('../helpers/driverPayment');
+const { getDriverPrice, getNextStartsAt, addDays, getSettings } = require('../helpers/driverPayment');
+const Settings = require('../models/settings');
 
 // POST /api/payments/driver/upload
 const uploadDriverPayment = async (req, res = response) => {
@@ -228,6 +229,33 @@ const adminCreatePayment = async (req, res = response) => {
     }
 };
 
+// GET /api/payments/admin/settings
+const adminGetSettings = async (req, res = response) => {
+    try {
+        const settings = await getSettings();
+        return res.status(200).json({ ok: true, settings });
+    } catch (err) {
+        console.error('adminGetSettings', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
+// PUT /api/payments/admin/settings
+const adminUpdateSettings = async (req, res = response) => {
+    try {
+        const allowed = ['driverMonthlyPrice', 'driverMonthlyDurationDays', 'currency'];
+        const $set = {};
+        for (const k of allowed) {
+            if (req.body && req.body[k] !== undefined) $set[k] = req.body[k];
+        }
+        const settings = await Settings.findOneAndUpdate({}, { $set }, { upsert: true, new: true, setDefaultsOnInsert: true });
+        return res.status(200).json({ ok: true, settings });
+    } catch (err) {
+        console.error('adminUpdateSettings', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 module.exports = {
     uploadDriverPayment,
     listDriverPayments,
@@ -236,5 +264,7 @@ module.exports = {
     adminListPayments,
     adminApprovePayment,
     adminRejectPayment,
-    adminCreatePayment
+    adminCreatePayment,
+    adminGetSettings,
+    adminUpdateSettings
 };

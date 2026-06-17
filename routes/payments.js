@@ -54,4 +54,14 @@ router.post('/admin/create',
     paymentsController.adminCreatePayment
 );
 
+router.get('/admin/settings',
+    [validarJWT, validarAdmin],
+    paymentsController.adminGetSettings
+);
+
+router.put('/admin/settings',
+    [validarJWT, validarAdmin],
+    paymentsController.adminUpdateSettings
+);
+
 module.exports = router;

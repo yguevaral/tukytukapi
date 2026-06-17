@@ -13,7 +13,8 @@ const {
     getListDriver,
     adminListDriverSetStatus,
     getDriver,
-    adminCreateDriver
+    adminCreateDriver,
+    adminSetSpecialPricing
 } = require('../controllers/usuarios');
 
 const router = Router();
@@ -56,5 +57,12 @@ router.post('/driver/admin-create', [
 ], adminCreateDriver);
 
 router.get('/driver', validarJWT, getDriver);
+
+router.put('/admin/:driverUid/special-pricing', [
+    validarJWT,
+    validarAdmin,
+    check('driverUid', 'driverUid obligatorio').not().isEmpty(),
+    validarCampos
+], adminSetSpecialPricing);
 
 module.exports = router;

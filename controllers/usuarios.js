@@ -199,11 +199,42 @@ const adminCreateDriver = async (req, res = response) => {
     }
 };
 
+// PUT /api/usuarios/admin/:driverUid/special-pricing
+const adminSetSpecialPricing = async (req, res = response) => {
+    try {
+        const { driverUid } = req.params;
+        const body = req.body || {};
+        const $set = {};
+        const $unset = {};
+
+        if (body.specialPrice === null) $unset.specialPrice = '';
+        else if (body.specialPrice !== undefined) $set.specialPrice = Number(body.specialPrice);
+
+        if (body.specialDurationDays === null) $unset.specialDurationDays = '';
+        else if (body.specialDurationDays !== undefined) $set.specialDurationDays = Number(body.specialDurationDays);
+
+        const update = {};
+        if (Object.keys($set).length) update.$set = $set;
+        if (Object.keys($unset).length) update.$unset = $unset;
+
+        const driver = await Driver.findOneAndUpdate(
+            { usuario: driverUid },
+            update,
+            { new: true, upsert: false }
+        );
+        return res.status(200).json({ ok: true, driver });
+    } catch (err) {
+        console.error('adminSetSpecialPricing', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 module.exports = {
     getUsuarios,
     setDriverSingin,
     getListDriver,
     adminListDriverSetStatus,
     getDriver,
-    adminCreateDriver
+    adminCreateDriver,
+    adminSetSpecialPricing
 }
