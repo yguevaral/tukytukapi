@@ -51,7 +51,7 @@ test('adminListPayments aplica filtros opcionales', async (t) => {
     await adminListPayments(req, res);
     const firstMatch = captured.find(s => s.$match)?.$match;
     assert.equal(firstMatch.status, 'pendiente');
-    assert.ok(firstMatch.driver);
+    assert.equal(firstMatch.driver, 'd1');
 });
 
 test('adminApprovePayment 409 si pago no está pendiente', async (t) => {
