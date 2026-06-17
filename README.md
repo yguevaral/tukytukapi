@@ -48,7 +48,7 @@ index.js       # wiring principal
 - Un conductor solo puede tener UN viaje activo simultáneo (`driver_status` ∈ {R, P}).
 - Cancelación de viaje permitida por el pasajero en estados S, A, P.
 - Estados `user_status`: `S` (solicitado), `A` (asignado), `P` (en progreso), `F` (finalizado), `C` (cancelado).
-- Estados `driver_status`: `P` (pendiente), `R` (en ruta a recoger), `P` (en progreso con pasajero), `F` (finalizado).
+- Estados `driver_status`: `P` (default — pendiente de asignación o en progreso con pasajero), `R` (en ruta a recoger), `F` (finalizado). El valor `P` se reutiliza para ambos significados — el ciclo real es: `P` (pendiente) → `R` (en ruta) → `P` (en progreso) → `F` (finalizado).
 
 ## Para agentes de IA
 
