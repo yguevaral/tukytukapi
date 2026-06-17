@@ -4,9 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test tests/*.test.js",
     "start": "node index.js",
-    "start:dev": "nodemon index.js"
+    "start:dev": "nodemon index.js",
+    "seed:dev": "node seeds/index.js",
+    "docker:up": "docker compose up -d mongo",
+    "docker:down": "docker compose down"
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +20,7 @@
     "dotenv": "^8.6.0",
     "express": "^4.17.1",
     "express-validator": "^7.2.1",
+    "google-auth-library": "^10.7.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.3",
     "socket.io": "^4.8.1"
