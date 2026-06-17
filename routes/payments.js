@@ -6,6 +6,7 @@ const { Router } = require('express');
 const upload = require('../helpers/upload');
 const { validarJWT } = require('../middlewares/validar-jwt');
 const { validarConductor } = require('../middlewares/validar-conductor');
+const { validarAdmin } = require('../middlewares/validar-admin');
 const paymentsController = require('../controllers/payments');
 
 const router = Router();
@@ -30,6 +31,27 @@ router.get('/driver/status',
 router.get('/receipt/:filename',
     [validarJWT],
     paymentsController.serveReceipt
+);
+
+// Rutas admin
+router.get('/admin/list',
+    [validarJWT, validarAdmin],
+    paymentsController.adminListPayments
+);
+
+router.put('/admin/:id/approve',
+    [validarJWT, validarAdmin],
+    paymentsController.adminApprovePayment
+);
+
+router.put('/admin/:id/reject',
+    [validarJWT, validarAdmin],
+    paymentsController.adminRejectPayment
+);
+
+router.post('/admin/create',
+    [validarJWT, validarAdmin, upload.single('receipt')],
+    paymentsController.adminCreatePayment
 );
 
 module.exports = router;

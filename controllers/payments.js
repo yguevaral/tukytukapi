@@ -5,7 +5,7 @@ const fs = require('fs');
 const Payment = require('../models/payment');
 const Driver = require('../models/driver');
 const Usuario = require('../models/usuario');
-const { getDriverPrice } = require('../helpers/driverPayment');
+const { getDriverPrice, getNextStartsAt, addDays } = require('../helpers/driverPayment');
 
 // POST /api/payments/driver/upload
 const uploadDriverPayment = async (req, res = response) => {
@@ -103,9 +103,138 @@ const serveReceipt = async (req, res = response) => {
     }
 };
 
+// GET /api/payments/admin/list
+const adminListPayments = async (req, res = response) => {
+    try {
+        const { status, driverUid } = req.query;
+        const page = Math.max(parseInt(req.query.page) || 1, 1);
+        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+        const filter = {};
+        if (status) filter.status = status;
+        if (driverUid) filter.driver = driverUid;
+
+        const [payments, total] = await Promise.all([
+            Payment.find(filter)
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit),
+            Payment.countDocuments(filter)
+        ]);
+        return res.status(200).json({ ok: true, payments, total, page, limit });
+    } catch (err) {
+        console.error('adminListPayments', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
+// PUT /api/payments/admin/:id/approve
+const adminApprovePayment = async (req, res = response) => {
+    try {
+        const { io } = require('../index');
+        const payment = await Payment.findById(req.params.id);
+        if (!payment) {
+            return res.status(404).json({ ok: false, msg: 'Pago no encontrado' });
+        }
+        if (payment.status !== 'pendiente') {
+            return res.status(409).json({ ok: false, msg: 'Pago ya no está pendiente' });
+        }
+        payment.startsAt = await getNextStartsAt(payment.driver);
+        payment.expiresAt = addDays(payment.startsAt, payment.durationDays);
+        payment.status = 'aprobado';
+        payment.reviewedBy = req.uid;
+        payment.reviewedAt = new Date();
+        await payment.save();
+
+        io.to(String(payment.driver)).emit('payment-approved', { payment });
+        return res.status(200).json({ ok: true, payment });
+    } catch (err) {
+        console.error('adminApprovePayment', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
+// PUT /api/payments/admin/:id/reject
+const adminRejectPayment = async (req, res = response) => {
+    try {
+        const { adminComment } = req.body || {};
+        if (!adminComment || String(adminComment).trim().length < 3) {
+            return res.status(400).json({ ok: false, msg: 'adminComment es obligatorio (mínimo 3 caracteres)' });
+        }
+        const { io } = require('../index');
+        const payment = await Payment.findById(req.params.id);
+        if (!payment) {
+            return res.status(404).json({ ok: false, msg: 'Pago no encontrado' });
+        }
+        if (payment.status !== 'pendiente') {
+            return res.status(409).json({ ok: false, msg: 'Pago ya no está pendiente' });
+        }
+        payment.status = 'rechazado';
+        payment.adminComment = adminComment;
+        payment.reviewedBy = req.uid;
+        payment.reviewedAt = new Date();
+        await payment.save();
+
+        io.to(String(payment.driver)).emit('payment-rejected', { payment });
+        return res.status(200).json({ ok: true, payment });
+    } catch (err) {
+        console.error('adminRejectPayment', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
+// POST /api/payments/admin/create
+const adminCreatePayment = async (req, res = response) => {
+    try {
+        const { driverUid, adminComment, amount, durationDays } = req.body || {};
+        if (!driverUid) {
+            return res.status(400).json({ ok: false, msg: 'driverUid es obligatorio' });
+        }
+        if (!adminComment || String(adminComment).trim().length < 3) {
+            return res.status(400).json({ ok: false, msg: 'adminComment es obligatorio (mínimo 3 caracteres)' });
+        }
+        const usuario = await Usuario.findById(driverUid).select('type');
+        if (!usuario || usuario.type !== 'C') {
+            return res.status(404).json({ ok: false, msg: 'Conductor no encontrado' });
+        }
+        const { io } = require('../index');
+        const driver = await Driver.findOne({ usuario: driverUid });
+        const price = await getDriverPrice(driver || {});
+        const finalAmount = amount != null ? Number(amount) : price.amount;
+        const finalDuration = durationDays != null ? Number(durationDays) : price.durationDays;
+
+        const startsAt = await getNextStartsAt(driverUid);
+        const expiresAt = addDays(startsAt, finalDuration);
+
+        const payment = new Payment({
+            driver: driverUid,
+            amount: finalAmount,
+            durationDays: finalDuration,
+            status: 'aprobado',
+            createdBy: 'admin',
+            adminComment,
+            receiptUrl: req.file ? `/api/payments/receipt/${req.file.filename}` : undefined,
+            reviewedBy: req.uid,
+            reviewedAt: new Date(),
+            startsAt,
+            expiresAt
+        });
+        await payment.save();
+
+        io.to(String(driverUid)).emit('payment-approved', { payment });
+        return res.status(200).json({ ok: true, payment });
+    } catch (err) {
+        console.error('adminCreatePayment', { uid: req.uid, err: err.message });
+        return res.status(500).json({ ok: false, msg: 'Error interno' });
+    }
+};
+
 module.exports = {
     uploadDriverPayment,
     listDriverPayments,
     getDriverStatus,
-    serveReceipt
+    serveReceipt,
+    adminListPayments,
+    adminApprovePayment,
+    adminRejectPayment,
+    adminCreatePayment
 };
