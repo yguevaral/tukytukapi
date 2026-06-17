@@ -17,7 +17,11 @@ const UsuarioSchema = Schema({
     },
     password: {
         type: String,
-        required: true
+        required: false
+    },
+    googleId: {
+        type: String,
+        index: { unique: true, sparse: true }
     },
     online: {
         type: Boolean,
@@ -35,6 +39,7 @@ const UsuarioSchema = Schema({
         type: String,
         default: "AP"
     },
+    // E = email/OTP, G = Google, F = Facebook
     register_type: {
         type: String,
         default: "E"
@@ -50,6 +55,4 @@ UsuarioSchema.method('toJSON', function() {
     return object;
 })
 
-
-
-module.exports = model('Usuario', UsuarioSchema );
+module.exports = model('Usuario', UsuarioSchema);
