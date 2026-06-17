@@ -14,11 +14,17 @@ const router = Router();
 
 
 router.post('/new', [
-    check('nombre','El nombre es obligatorio').not().isEmpty(),
-    check('password','La contraseña es obligatoria').not().isEmpty(),
-    check('email','El correo es obligatorio').isEmail(),
-    check('type','type es obligatorio').not().isEmpty(),
-    check('register_type','register_type es obligatorio').not().isEmpty(),
+    check('nombre', 'El nombre es obligatorio').not().isEmpty(),
+    check('email', 'El correo es obligatorio').isEmail(),
+    check('type', 'type es obligatorio').not().isEmpty(),
+    check('register_type', 'register_type es obligatorio').not().isEmpty(),
+    // Password solo obligatorio cuando registra por email
+    check('password').custom((value, { req }) => {
+        if (req.body.register_type === 'E' && (!value || value.length < 4)) {
+            throw new Error('La contraseña es obligatoria y debe tener al menos 4 caracteres');
+        }
+        return true;
+    }),
     validarCampos
 ], crearUsuario );
 

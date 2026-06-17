@@ -67,7 +67,8 @@ const crearUsuario = async (req, res = response ) => {
             });
         }
 
-        if( register_type === 'email' ) {
+        // Solo para registro por email: validar OTP
+        if( register_type === 'E' ) {
             const existeCodeOTP = await OTPCode.findOne({ code, email, status: 'S' });
             if( !existeCodeOTP ) {
                 return res.status(400).json({
@@ -75,13 +76,20 @@ const crearUsuario = async (req, res = response ) => {
                     msg: 'El código no es válido'
                 });
             }
+            // Marcar OTP como usado
+            existeCodeOTP.status = 'V';
+            await existeCodeOTP.save();
         }
-        
+
         const usuario = new Usuario( req.body );
 
-        // Encriptar contraseña
-        const salt = bcrypt.genSaltSync();
-        usuario.password = bcrypt.hashSync( password, salt );
+        // Solo encriptar password si vino (para registro por email)
+        if (password) {
+            const salt = bcrypt.genSaltSync();
+            usuario.password = bcrypt.hashSync(password, salt);
+        } else {
+            usuario.password = undefined;
+        }
 
         await usuario.save();
 
