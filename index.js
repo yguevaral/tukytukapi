@@ -37,6 +37,7 @@ app.use( '/api/login', require('./routes/auth') );
 app.use( '/api/usuarios', require('./routes/usuarios') );
 app.use( '/api/mensajes', require('./routes/mensajes') );
 app.use( '/api/trip', require('./routes/trip') );
+app.use( '/api/payments', require('./routes/payments') );
 
 server.listen( process.env.PORT, ( err ) => {
 
